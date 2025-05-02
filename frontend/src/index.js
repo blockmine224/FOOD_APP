@@ -4,7 +4,7 @@ import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import theme from './theme';
 import './styles/main.css';
-import './styles/test.css';
+
 import './styles/mui-overrides.css';
 import './index.css';
 import App from './App';
