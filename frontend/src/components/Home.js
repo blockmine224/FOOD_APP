@@ -49,7 +49,7 @@ import {
   Star as StarIcon,
   EmojiEvents as TrophyIcon
 } from '@mui/icons-material';
-import educationImage from '../images/photo3.jpg';
+import foodImage from '../images/food1.jpg';
 
 // Animation keyframes
 const fadeIn = keyframes`
@@ -78,7 +78,7 @@ const gradientBg = keyframes`
 
 
 function Home() {
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [showScrollTop, setShowScrollTop] = useState(false);
   const navigate = useNavigate();
@@ -141,21 +141,15 @@ function Home() {
         </Container>
       )}
 
-      <Paper
+<Paper
         sx={{
           position: 'relative',
-          background: 'linear-gradient(-45deg, #2196f3, #64b5f6, #01214F, #1976d2)',
+          background: 'linear-gradient(-45deg, #71b280, #134e5e, #ff9966, #56ab2f)',
           backgroundSize: '400% 400%',
           animation: `${gradientBg} 15s ease infinite`,
           color: 'snow',
-          
           borderRadius: 0,
           overflow: 'hidden',
-          '&::before': {
-            content: '""',
-            position: 'absolute',
-            background: 'radial-gradient(circle at center, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 70%)',
-          }
         }}
       >
         <Container maxWidth="lg">
@@ -167,32 +161,29 @@ function Home() {
                 color="inherit"
                 gutterBottom
                 sx={{
-                  fontSize: { 
-                    xs: '1.5rem',  
-                    sm: '2rem',    
-                    md: '2.5rem'   
-                  },
+                  fontSize: { xs: '2rem', sm: '2.5rem', md: '3rem' },
                   fontWeight: "bold",
                   fontFamily: "Roboto Slab",
                   animation: `${fadeIn} 1s ease-out`,
-                  textShadow: '2px 2px 4px rgba(0,0,0,0.2)',
+                  textShadow: '2px 2px 4px rgba(0,0,0,0.15)',
                   py: { xs: 2, md: 0 }
                 }}
               >
-                Chào mừng bạn đến với Hành trình học tập.
+                Chào mừng đến với <span style={{ color: '#ffb347' }}>FoodLife</span>
               </Typography>
-              <Typography 
-                variant="h5" 
-                color="inherit" 
-                paragraph 
-                sx={{ 
+              <Typography
+                variant="h5"
+                color="inherit"
+                paragraph
+                sx={{
                   opacity: 0.9,
                   animation: `${fadeIn} 1s ease-out 0.3s`,
                   animationFillMode: 'both',
                 }}
               >
-                Nâng cao kiến thức của bạn với nền tảng kiểm tra trắc nghiệm toàn diện,
-                theo dõi tiến trình và đạt được mục tiêu học tập.
+                Khám phá thực đơn thông minh, món ăn ngon và lối sống lành mạnh giúp kéo dài tuổi thọ.
+                <br />
+                Chúng tôi đề xuất bữa ăn phù hợp với sở thích, sức khỏe và mục tiêu sống lâu của bạn!
               </Typography>
 
               <Button
@@ -201,11 +192,9 @@ function Home() {
                 size="large"
                 endIcon={<ArrowForwardIcon />}
                 onClick={() => {
-                  document.getElementById('overview').scrollIntoView({ 
-                    behavior: 'smooth'
-                  });
+                  document.getElementById('overview').scrollIntoView({ behavior: 'smooth' });
                 }}
-                sx={{ 
+                sx={{
                   mt: 2,
                   fontSize: { xs: 16, md: 20 },
                   fontWeight: "bold",
@@ -213,32 +202,26 @@ function Home() {
                   width: { xs: '100%', sm: 'auto' }
                 }}
               >
-                Bắt đầu
+                Khám phá thực đơn
               </Button>
             </Grid>
 
-            <Grid item xs={12} md={6} sx={{ display: { xs: 'block', sm: 'block', md: 'block'  }, mt: { xs: 4, md: 0 } }}>
+            <Grid item xs={12} md={6}>
               <Box
                 component="img"
-                src={educationImage}
-                alt="Education illustration"
+                src={foodImage}
+                alt="Healthy cuisine"
                 sx={{
-                  width: { 
-                    xs: '80%',    
-                    sm: '70%',    
-                    md: '60%'     
-                  },
-                  maxWidth: '500px',
+                  width: { xs: '90%', sm: '80%', md: '70%' },
+                  maxWidth: '450px',
                   height: 'auto',
                   display: 'block',
                   margin: '0 auto',
-                  borderRadius: '12px',
-                  boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+                  borderRadius: '16px',
+                  boxShadow: '0 4px 20px rgba(0,0,0,0.12)',
                   animation: `${float} 4s ease-in-out infinite`,
                   transform: 'translateY(0)',
-                  '&:hover': {
-                    transform: 'scale(1.02)',
-                  }
+                  '&:hover': { transform: 'scale(1.02)' }
                 }}
               />
             </Grid>
@@ -246,26 +229,56 @@ function Home() {
         </Container>
       </Paper>
 
-      <Container maxWidth="lg" sx={{ mb: 4 }}>
-        <Typography 
-          variant="h3" 
-          align="center" 
-          gutterBottom 
-          sx={{ 
-            mb: 2, 
+      {/* Overview Section */}
+      <Container maxWidth="lg" sx={{ mb: 4 }} id="overview">
+        <Typography
+          variant="h3"
+          align="center"
+          gutterBottom
+          sx={{
+            mb: 2,
             fontFamily: "Roboto Slab",
             animation: `${fadeIn} 1s ease-out`,
           }}
         >
-          Tổng quan
+          Vì sức khỏe, vì tương lai
         </Typography>
-        <Grid container spacing={2}>
-          
+        <Grid container spacing={3}>
+          {/* Featured Menu */}
+          <Grid item xs={12} md={4}>
+            <Paper sx={{ p: 3, minHeight: 180, textAlign: 'center', background: "#f7ffe0" }}>
+              <Typography variant="h5" fontWeight="bold" sx={{ color: '#81c784' }}>
+                Thực Đơn Đề Xuất
+              </Typography>
+              <Typography variant="body1" sx={{ mt: 1 }}>
+                Được cá nhân hóa dựa trên sở thích và sức khỏe của bạn.<br />
+                (Tích hợp AI/ML trong tương lai)
+              </Typography>
+            </Paper>
+          </Grid>
+          {/* Cuisine Discovery */}
+          <Grid item xs={12} md={4}>
+            <Paper sx={{ p: 3, minHeight: 180, textAlign: 'center', background: "#e0f7fa" }}>
+              <Typography variant="h5" fontWeight="bold" sx={{ color: '#4dd0e1' }}>
+                Khám phá Ẩm Thực
+              </Typography>
+              <Typography variant="body1" sx={{ mt: 1 }}>
+                Khám phá món ăn từ khắp nơi trên thế giới, đa dạng dinh dưỡng, tốt cho sức khỏe.
+              </Typography>
+            </Paper>
+          </Grid>
+          {/* Longevity/Health Tips */}
+          <Grid item xs={12} md={4}>
+            <Paper sx={{ p: 3, minHeight: 180, textAlign: 'center', background: "#fbeee6" }}>
+              <Typography variant="h5" fontWeight="bold" sx={{ color: '#ffb74d' }}>
+                Sống Khỏe Sống Lâu
+              </Typography>
+              <Typography variant="body1" sx={{ mt: 1 }}>
+                Các bí quyết ăn uống, thực phẩm trường thọ và lời khuyên từ chuyên gia.
+              </Typography>
+            </Paper>
+          </Grid>
         </Grid>
-      </Container>
-
-      <Container maxWidth="lg" sx={{ mb: 8 }} id="overview">
-        
       </Container>
 
       {showScrollTop && (
@@ -277,19 +290,15 @@ function Home() {
             right: 20,
             backgroundColor: 'primary.main',
             color: 'white',
-            '&:hover': {
-              backgroundColor: 'primary.dark',
-            },
+            '&:hover': { backgroundColor: 'primary.dark' },
             animation: `${fadeIn} 0.3s ease-out`,
           }}
         >
           <ArrowUpwardIcon />
         </IconButton>
       )}
-      
     </Box>
   );
 }
-
 
 export default Home;

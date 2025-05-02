@@ -154,7 +154,7 @@ function Header() {
                 textShadow: '2px 2px 4px rgba(0,0,0,0.1)',
               }}
             >
-              {isAuthenticated ? `Xin chào, ${displayName}!` : 'Trắc nghiệm'}
+              {isAuthenticated ? `Xin chào, ${displayName}!` : 'FoodLife'}
             </Typography>
 
             {/* Search Box */}
