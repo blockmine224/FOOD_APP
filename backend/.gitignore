@@ -1,0 +1,13 @@
+config.py
+idk.py
+menu/data/
+
+venv/
+
+*.pyc
+__pycache__/
+auth/__pycache__/
+db/__pycache__/
+menu/__pycache__/
+users/__pycache__/
+utils/__pycache__/

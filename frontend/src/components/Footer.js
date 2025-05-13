@@ -13,41 +13,41 @@ import X from '@mui/icons-material/X';
 import InstagramIcon from '@mui/icons-material/Instagram';
 import LinkedInIcon from '@mui/icons-material/LinkedIn';
 import EmailIcon from '@mui/icons-material/Email';
-import backgroundImage from '../images/idk22.png';
+import backgroundImage from '../images/footer_r.jpg';
 
 
 function Footer() {
   const currentYear = new Date().getFullYear();
 
-  const quizLinks = [
+  const foodLinks = [
     {
-      name: "Hocmai",
-      url: "https://hocmai.vn/",
+      name: "Tuikhoeconban",
+      url: "https://tuikhoeconban.com/macronutrients/",
       description: " "
     },
     {
-      name: "Khan Academy",
-      url: "https://www.khanacademy.org/",
+      name: "Bộ y tế",
+      url: "https://moh.gov.vn/",
       description: " "
     },
     {
-      name: "Hoc247",
-      url: "https://hoc247.vn/",
+      name: "Nutritionsource",
+      url: "https://nutritionsource.hsph.harvard.edu/",
       description: " "
     },
     {
-      name: "Violympic",
-      url: "https://violympic.vn/",
+      name: "Who",
+      url: "https://www.who.int/health-topics/nutrition#tab=tab_1",
       description: " "
     },
     {
-      name: "Ebook.edu",
-      url: "https://doc.edu.vn/",
+      name: "WebMD",
+      url: "https://www.webmd.com/diet/default.htm",
       description: " "
     },
     {
-      name: "Moon.vn",
-      url: "https://moon.vn/",
+      name: "Soumaki.vn",
+      url: "https://soumaki.com.vn/vi/home/",
       description: " "
     }
   ];
@@ -78,10 +78,10 @@ function Footer() {
         <Grid container spacing={4} sx={{ mb: 4 }}>
           <Grid item xs={12} sm={6} md={3}>
             <Typography variant="h6" gutterBottom sx={{ fontWeight: 'bold', fontFamily:"Roboto Slab" }}>
-              Trang web học tập khác
+              Khám phá thêm
             </Typography>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-              {quizLinks.map((link, index) => (
+              {foodLinks.map((link, index) => (
                 <Box key={index}>
                   <Link
                     href={link.url}
@@ -149,7 +149,7 @@ function Footer() {
             <Box sx={{ display: 'flex', flexDirection: 'column' }}>
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
                 <EmailIcon sx={{ mr: 1, fontSize: '1rem' }} />
-                <Typography variant="body2">support@quizwebsite.com</Typography>
+                <Typography variant="body2">support@foodwebsite.com</Typography>
               </Box>
             </Box>
           </Grid>
@@ -183,7 +183,7 @@ function Footer() {
           pb: 0 
         }}>
           <Typography variant="body2" color="inherit" >
-            © {currentYear} Quiz Website. All rights reserved.
+            © {currentYear} Food Website. All rights reserved.
           </Typography>
           <Box >
             {/*

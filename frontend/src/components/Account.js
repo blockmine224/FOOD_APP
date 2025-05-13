@@ -1,694 +1,408 @@
 import React, { useState, useEffect } from 'react';
 import { keyframes } from '@mui/system';
-import { AddAPhoto as AddAPhotoIcon } from '@mui/icons-material';
-import {
-  Container,
-  Typography,
-  Box,
-  TextField,
-  Button,
-  Alert,
-  Paper,
-  Avatar,
-  Grid,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Card,
-  CardContent,
-  Divider,
-  IconButton,
-  CircularProgress,
-  Tooltip
-} from '@mui/material';
-import {
-  Edit as EditIcon,
-  Email as EmailIcon,
-  Person as PersonIcon,
-  Grade as GradeIcon,
-  History as HistoryIcon,
-  Save as SaveIcon,
-  StarBorder as StarBorderIcon,
-  Cancel as CancelIcon,
-  AccessTime as TimeIcon,
-} from '@mui/icons-material';
+import { Container, Box, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions, Button, IconButton } from '@mui/material';
+import CloseIcon from '@mui/icons-material/Close';
+import AccountSidebar from './AccountSidebar';
+import PersonalInfoSection from './PersonalInfoSection';
+import NutritionRecommendationSection from './NutritionRecommendationSection';
+import RecommendationMenuSection from './RecommendationMenuSection';
+import EatTodayMascot from './EatTodayMascot';
+import MenuDialog from './MenuDialog';
 import { useAuth } from '../contexts/AuthContext';
-import { useSearchParams, Link } from 'react-router-dom';
-
+import { useSearchParams } from 'react-router-dom';
+import { useNavigate } from "react-router-dom";
+import FoodLoadingOverlay from './FoodLoadingOverlay';
 
 const fadeIn = keyframes`
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-`;
-
-const slideIn = keyframes`
-  from {
-    transform: translateX(-20px);
-    opacity: 0;
-  }
-  to {
-    transform: translateX(0);
-    opacity: 1;
-  }
-`;
-
-const pulseAnimation = keyframes`
-  0% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.02);
-  }
-  100% {
-    transform: scale(1);
-  }
+  from { opacity: 0; transform: translateY(20px);}
+  to   { opacity: 1; transform: translateY(0);}
 `;
 
 function Account() {
-    const { logout, updateDisplayName } = useAuth();
-    const [userData, setUserData] = useState({ displayName: '', email: '', level: '' });
-    const [editMode, setEditMode] = useState(false);
-    const [message, setMessage] = useState('');
-    const [error, setError] = useState('');
-    const [searchParams, setSearchParams] = useSearchParams();
-    const [avatar, setAvatar] = useState(null);
-    const [isUploading, setIsUploading] = useState(false);
-    const [openPreview, setOpenPreview] = useState(false);
-    const [previewUrl, setPreviewUrl] = useState('');
-    const API = process.env.REACT_APP_API_URL;
+  const { logout, updateDisplayName } = useAuth();
+  const [userData, setUserData] = useState({
+    displayName: '',
+    email: '',
+    gender: '',
+    date_of_birth: '',
+    height: '',
+    weight: '',
+  });
+  const [editMode, setEditMode] = useState(false);
+  const [message, setMessage] = useState('');
+  const [error, setError] = useState('');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [avatar, setAvatar] = useState(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [openPreview, setOpenPreview] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState('');
+  const [recommendations, setRecommendations] = useState(null);
+  const [isLoadingMenu, setIsLoadingMenu] = useState(false);
+  const [menuDialogOpen, setMenuDialogOpen] = useState(false);
+  const [showUnrecMenu, setShowUnrecMenu] = useState(false);
+  const [lastMenuParams, setLastMenuParams] = useState(null);
+  const [showMenuSuggestPanel, setShowMenuSuggestPanel] = useState(false);
+  const [preference, setPreference] = useState('');
+  const [restrictions, setRestrictions] = useState([]);
+  const getToken = () => localStorage.getItem('token');
 
-    const handlePreview = () => {
-        if (avatar || userData.avatarUrl) {
-            const imageUrl = avatar || userData.avatarUrl;
-            const fullUrl = imageUrl.startsWith('http') 
-                ? imageUrl 
-                : `${API}${imageUrl}`;
-            setPreviewUrl(fullUrl);
-            setOpenPreview(true);
-        }
-    };
-    
+  const API = process.env.REACT_APP_API_URL;
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [section, setSection] = useState("personal");
+  const navigate = useNavigate();
 
-    const fetchUserData = async () => {
-        try {
-            const token = localStorage.getItem('token');
-            const response = await fetch(`${API}/api/users/me`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                },
-            });
-    
-            if (response.ok) {
-                const data = await response.json();
-                if (data.avatarUrl) {
-                    data.avatarUrl = `${API}${data.avatarUrl}`;
-                }
-                setUserData(data);
-                setAvatar(data.avatarUrl);
-            }
-        } catch (error) {
-            console.error('Error fetching user data:', error);
-        }
-    };
+  useEffect(() => {
+    if (message) {
+      const timer = setTimeout(() => setMessage(''), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [message]);
 
-    const handleAvatarUpload = async (event) => {
-        const file = event.target.files[0];
-        if (file) {
-            if (file.size > 5242880) {
-                setError('Kích thước ảnh không được vượt quá 5MB');
-                return;
-            }
-    
-            setIsUploading(true);
-            setError('');
-            setMessage('');
-    
-            const previewUrl = URL.createObjectURL(file);
-    
-            const formData = new FormData();
-            formData.append('avatar', file);
-    
-            try {
-                const token = localStorage.getItem('token');
-                const response = await fetch(`${API}/api/users/avatar`, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                    },
-                    body: formData,
-                });
-    
-                const data = await response.json();
-    
-                if (response.ok) {
-                    const fullAvatarUrl = `${API}${data.avatarUrl}`;
-                    setAvatar(fullAvatarUrl);
-                    setUserData(prev => ({
-                        ...prev,
-                        avatarUrl: fullAvatarUrl
-                    }));
-                    setMessage('Cập nhật ảnh đại diện thành công!');
-                } else {
-                    setError(data.message || 'Không thể tải lên ảnh. Vui lòng thử lại.');
-                }
-            } catch (error) {
-                console.error('Error uploading avatar:', error);
-                setError('Đã xảy ra lỗi khi tải lên ảnh');
-            } finally {
-                setIsUploading(false);
-                URL.revokeObjectURL(previewUrl);
-            }
-        }
-    };
+  const handleSidebarSelect = (key) => {
+    if (key === "home") {
+      navigate("/");
+    } else {
+      setSection(key);
+    }
+  };
 
-    const [statistics, setStatistics] = useState({
-        totalTests: 0,
-        averageScore: 0,
-        averageTime: 0
+  const handlePreview = () => {
+    if (avatar || userData.avatarUrl) {
+      const imageUrl = avatar || userData.avatarUrl;
+      const fullUrl = imageUrl.startsWith('http') ? imageUrl : `${API}${imageUrl}`;
+      setPreviewUrl(fullUrl);
+      setOpenPreview(true);
+    }
+  };
+
+  const handleGetRecommendations = async (params) => {
+    try {
+      setIsLoadingMenu(true);
+      setError('');
+      setLastMenuParams(params);
+      const token = getToken();
+      const response = await fetch(`${API}/api/menu/recommendations`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          activity_level: params.activityLevel,
+          goal_type: params.goalType,
+          goal_intensity: params.goalIntensity
+        })
       });
-    
-      const fetchUserStatistics = async () => {
+      const data = await response.json();
+      if (response.ok) {
+        setRecommendations(data);
+        setShowUnrecMenu(false);
+        if (section !== "menu") setShowMenuSuggestPanel(true); 
+      } else {
+        setError(data.error || 'Failed to load menu recommendations');
+      }
+    } catch (err) {
+      setError('Failed to load menu recommendations.');
+    } finally {
+      setIsLoadingMenu(false);
+    }
+  };
+
+  const translateBMICategory = (category) => {
+    switch (category) {
+      case 'underweight': return 'Thiếu cân';
+      case 'normal': return 'Bình thường';
+      case 'overweight': return 'Thừa cân';
+      case 'obese': return 'Béo phì';
+      default: return category;
+    }
+  };
+
+  const fetchUserData = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API}/api/users/me`, {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        if (data.avatarUrl) data.avatarUrl = `${API}${data.avatarUrl}`;
+        setUserData(data);
+        setAvatar(data.avatarUrl);
+
+        const prefRes = await fetch(`${API}/api/users/preferences`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (prefRes.ok) {
+          const prefData = await prefRes.json();
+          setPreference(prefData.preference_type || '');
+          setRestrictions(prefData.restriction_types || []);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching user data:', error);
+    }
+  };
+
+  const handleAvatarUpload = async (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      if (file.size > 5242880) {
+        setError('Kích thước ảnh không được vượt quá 5MB');
+        return;
+      }
+      setIsUploading(true);
+      setError('');
+      setMessage('');
+      const previewUrl = URL.createObjectURL(file);
+      const formData = new FormData();
+      formData.append('avatar', file);
+      try {
         const token = localStorage.getItem('token');
-        try {
-            const response = await fetch(`${API}/api/users/test-history`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                },
-            });
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            const testHistory = await response.json();
-
-            const totalTests = testHistory.length;
-
-            const totalScore = testHistory.reduce((acc, test) => {
-                const correctAnswers = test.questionSet.filter(q => q.userAnswer === q.correctAnswer).length;
-                return acc + (correctAnswers * 0.25);
-            }, 0);
-            const averageScore = totalTests > 0 ? totalScore / totalTests : 0;
-
-            const totalTime = testHistory.reduce((acc, test) => acc + test.timeSpent, 0);
-            const averageTime = totalTests > 0 ? Math.round(totalTime / totalTests) : 0;
-
-            setStatistics({
-                totalTests,
-                averageScore,
-                averageTime,
-            });
-        } catch (error) {
-            console.error("Could not fetch test history:", error);
+        const response = await fetch(`${API}/api/users/avatar`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}` },
+          body: formData,
+        });
+        const data = await response.json();
+        if (response.ok) {
+          const fullAvatarUrl = `${API}${data.avatarUrl}`;
+          setAvatar(fullAvatarUrl);
+          setUserData(prev => ({ ...prev, avatarUrl: fullAvatarUrl }));
+          setMessage('Cập nhật ảnh đại diện thành công!');
+        } else {
+          setError(data.message || 'Không thể tải lên ảnh. Vui lòng thử lại.');
         }
-    };
-    
-    useEffect(() => {
-        window.scrollTo(0, 0);
-        fetchUserData();
-        const fetchData = async () => {
-            try {
-                const token = localStorage.getItem('token');
-                if (!token) {
-                    console.error("No token found");
-                    logout();
-                    return;
-                }
-    
-                const userResponse = await fetch(`${API}/api/users/me`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                    },
-                });
-    
-                if (!userResponse.ok) {
-                    throw new Error(`HTTP error! status: ${userResponse.status}`);
-                }
-    
-                const userData = await userResponse.json();
-                setUserData(userData);
-    
-                await fetchUserStatistics();
-    
-            } catch (error) {
-                console.error("Could not fetch data:", error);
-                setError('Failed to load user data.');
-            }
-        };
-    
-        if (searchParams.get('success') === 'loggedin') {
-            setMessage('Đăng nhập thành công!');
-            searchParams.delete('success');
-            setSearchParams(searchParams);
-        }
-    
-        fetchData();
-    }, [logout, searchParams, setSearchParams]);
+      } catch (error) {
+        setError('Đã xảy ra lỗi khi tải lên ảnh');
+      } finally {
+        setIsUploading(false);
+        URL.revokeObjectURL(previewUrl);
+      }
+    }
+  };
 
-
-    const formatAverageTime = (seconds) => {
-       const minutes = Math.floor(seconds / 60);
-       const remainingSeconds = seconds % 60;
-       return `${minutes}'${remainingSeconds.toString().padStart(2, '0')}s`;
-    };
-
-    const handleEdit = () => {
-        setEditMode(true);
-        setMessage('');
-        setError('');
-    };
-
-    const handleSave = async () => {
-        setMessage('');
-        setError('');
-
-        if(!userData.displayName){
-            setError('Tên hiển thị không được trống!');
-            setMessage('');
-            return;
-        }
-
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(userData.email)) {
-            setError('Vui lòng nhập địa chỉ email hợp lệ.');
-            return;
-            }
-
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    fetchUserData();
+    const fetchData = async () => {
+      try {
         const token = localStorage.getItem('token');
-        try {
-            const response = await fetch(`${API}/api/users/me`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`,
-                },
-                body: JSON.stringify(userData),
-            });
+        if (!token) { logout(); return; }
+        const userResponse = await fetch(`${API}/api/users/me`, {
+          headers: { 'Authorization': `Bearer ${token}` },
+        });
+        if (!userResponse.ok) throw new Error();
+        const userData = await userResponse.json();
+        setUserData(userData);
+      } catch (error) {
+        setError('Lỗi lấy dữ liệu, hãy đăng nhập lại.');
+      }
+    };
+    if (searchParams.get('success') === 'loggedin') {
+      setMessage('Đăng nhập thành công!');
+      searchParams.delete('success');
+      setSearchParams(searchParams);
+    }
+    fetchData();
+  }, [logout, searchParams, setSearchParams]);
 
-            const data = await response.json();
+  const handleEdit = () => { setEditMode(true); setMessage(''); setError(''); };
 
-            if (response.ok) {
-                setMessage('Thay đổi thông tin thành công!');
-                setEditMode(false);
-                localStorage.setItem('displayName', userData.displayName);
-                updateDisplayName(userData.displayName);
-            } else {
-                setError(data.message || 'Failed to update user data.');
-            }
-        } catch (error) {
-            console.error("Could not save user data:", error);
-            setError('Failed to save changes.');
+  const handleSave = async () => {
+    setMessage(''); setError('');
+    if (!userData.displayName) { setError('Tên hiển thị không được trống!'); return; }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(userData.email)) { setError('Vui lòng nhập địa chỉ email hợp lệ.'); return; }
+
+    const dob = userData.date_of_birth;
+    const height = Number(userData.height);
+    const weight = Number(userData.weight);
+
+    if (dob) {
+        const today = new Date();
+        const birth = new Date(dob);
+        let age = today.getFullYear() - birth.getFullYear();
+        const m = today.getMonth() - birth.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
+        if (age < 12 || age > 120) {
+          setError('Tuổi phải từ 12 đến 120');
+          return;
         }
-    };
+    }
 
-    const handleChange = (e) => {
-        setUserData({ ...userData, [e.target.name]: e.target.value });
-    };
+    if (height < 130 || height > 250) {
+        setError('Chiều cao phải từ 130 đến 250 cm');
+        return;
+    }
+    if (weight < 25 || weight > 300) {
+        setError('Cân nặng phải từ 25 đến 300 kg');
+        return;
+    }
 
-    const getInitials = (name) => {
-        return name
-            .split(' ')
-            .map(word => word[0])
-            .join('')
-            .toUpperCase();
-    };
+    const token = localStorage.getItem('token');
+    try {
+      
+      const response = await fetch(`${API}/api/users/me`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify(userData),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        setError(data.message || 'Failed to update user data.');
+        return;
+      }
+      
+      const prefRes = await fetch(`${API}/api/users/preferences`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({
+          preference_type: preference,
+          restriction_types: restrictions,
+        }),
+      });
+      const prefData = await prefRes.json();
+      if (!prefRes.ok) {
+        setError(prefData.message || 'Failed to update preferences.');
+        return;
+      }
+      setMessage('Thay đổi thông tin thành công!');
+      setEditMode(false);
+      localStorage.setItem('displayName', userData.displayName);
+      updateDisplayName(userData.displayName);
+    } catch (error) {
+      setError('Failed to save changes.');
+    }
+  };
 
-    const handleCancel = () => {
-        setEditMode(false);
-        setMessage('');
-        //setError('Đảm bảo tên và email hợp lệ.');
-    };
 
-    const cardStyle = {
-        height: '100%',
-        transition: 'transform 0.3s ease, box-shadow 0.3s ease',
-        '&:hover': {
-            transform: 'translateY(-5px)',
-            boxShadow: (theme) => theme.shadows[8],
-        },
-        animation: `${fadeIn} 0.6s ease-out`,
-        background: 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
-        border: '1px solid',
-        borderColor: 'divider',
-    };
+  const handleChange = (e) => { setUserData({ ...userData, [e.target.name]: e.target.value }); };
+  const getInitials = (name) => name.split(' ').map(word => word[0]).join('').toUpperCase();
+  const handleCancel = () => { setEditMode(false); setMessage(''); };
 
-    const textFieldStyle = {
-        '& .MuiOutlinedInput-root': {
-            transition: 'all 0.3s ease',
-            '&:hover': {
-                '& fieldset': {
-                    borderColor: 'primary.main',
-                },
-            },
-            '&.Mui-focused': {
-                '& fieldset': {
-                    borderWidth: '2px',
-                },
-            },
-        },
-    };
-
-    return (
-            
-        <Container maxWidth="md" sx={{ py: 4 }}>
-            <Paper 
-                elevation={3} 
-                sx={{ 
-                    p: 4, 
-                    borderRadius: 2,
-                    background: 'linear-gradient(135deg,rgba(244, 251, 255, 0.37) 0%, #f8f9fa 100%)',
-                    animation: `${fadeIn} 0.6s ease-out`,
-                    border: '1px solid',
-                    borderColor: 'divider',
-                    position: 'relative',
-                    overflow: 'hidden',
-                    '&::before': {
-                        content: '""',
-                        position: 'absolute',
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        height: '4px',
-                        background: 'linear-gradient(90deg,rgb(0, 0, 0),rgb(150, 150, 150))',
-                    }
-                }}
+  return (
+    <Box sx={{ display: "flex", minHeight: "100vh" }}>
+      <AccountSidebar
+        open={sidebarOpen}
+        onToggle={() => setSidebarOpen(v => !v)}
+        selectedKey={section}
+        onSelect={handleSidebarSelect}
+        avatarUrl={avatar || userData.avatarUrl}
+        displayName={userData.displayName || "User"}
+      />
+      <Box sx={{
+        flex: 1,
+        pl: sidebarOpen ? 28 : 9,
+        pr: 0,
+        pt: 4,
+        transition: "padding-left 0.3s"
+      }}>
+        <Container maxWidth="lg">
+          <MenuDialog
+            open={menuDialogOpen}
+            onClose={() => setMenuDialogOpen(false)}
+            onConfirm={handleGetRecommendations}
+            userData={userData}
+          />
+          <Dialog
+            open={showMenuSuggestPanel}
+            onClose={() => setShowMenuSuggestPanel(false)}
+            maxWidth="md"
+            fullWidth
+          >
+            <IconButton
+              onClick={() => setShowMenuSuggestPanel(false)}
+              sx={{ position: 'absolute', top: 8, right: 8, zIndex: 10 }}
             >
-                <Grid container spacing={4}>
-                <Grid item xs={12}>
-                    <Box display="flex" alignItems="center" mb={3}>
-                        <Box position="relative" display="inline-block">
-                            <Avatar
-                                src={avatar || (userData.avatarUrl ? `${API}${userData.avatarUrl}` : '')}
-                                onClick={handlePreview}
-                                sx={{
-                                    width: 100,
-                                    height: 100,
-                                    bgcolor: 'primary.main',
-                                    fontSize: '2.5rem',
-                                    mr: 3,
-                                    animation: `${pulseAnimation} 2s infinite`,
-                                    border: '4px solid',
-                                    borderColor: '#000000',
-                                    boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
-                                    transition: 'all 0.3s ease',
-                                    cursor: 'pointer',
-                                    '&:hover': {
-                                        transform: 'scale(1.05)',
-                                        boxShadow: '0 6px 25px rgba(0,0,0,0.15)',
-                                    },
-                                    opacity: isUploading ? 0.7 : 1,
-                                }}
-                            >
-                                {!avatar && !userData.avatarUrl && getInitials(userData.displayName || 'User')}
-                                {isUploading && (
-                                    <Box
-                                        position="absolute"
-                                        top={0}
-                                        left={0}
-                                        right={0}
-                                        bottom={0}
-                                        display="flex"
-                                        alignItems="center"
-                                        justifyContent="center"
-                                        bgcolor="rgba(0,0,0,0.3)"
-                                        borderRadius="50%"
-                                    >
-                                        <CircularProgress size={40} color="inherit" />
-                                    </Box>
-                                )}
-                                        </Avatar>
+              <CloseIcon />
+            </IconButton>
+            <Box sx={{ p: { xs: 1, sm: 3 } }}>
+              <RecommendationMenuSection
+              showCreateMenuButton={false}
+                userData={userData}
+                isLoadingMenu={isLoadingMenu}
+                menuDialogOpen={menuDialogOpen}
+                setMenuDialogOpen={setMenuDialogOpen}
+                handleGetRecommendations={handleGetRecommendations}
+                recommendations={recommendations}
+                showUnrecMenu={showUnrecMenu}
+                setShowUnrecMenu={setShowUnrecMenu}
+                translateBMICategory={translateBMICategory}
+                lastMenuParams={lastMenuParams}
+            
+              />
+            </Box>
+          </Dialog>
 
-                                        <input
-                                            type="file"
-                                            accept="image/*"
-                                            id="avatar-upload"
-                                            style={{ display: 'none' }}
-                                            onChange={handleAvatarUpload}
-                                            disabled={isUploading}
-                                        />
-                            
-                                        <label htmlFor="avatar-upload">
-                                            <IconButton
-                                                component="span"
-                                                disabled={isUploading}
-                                                sx={{
-                                                   position: 'absolute',
-                                                    bottom: -5,
-                                                    right: 8,
-                                                    backgroundColor: 'primary.main',
-                                                    color: 'white',
-                                                    '&:hover': {
-                                                        backgroundColor: 'primary.dark',
-                                                        transform: 'scale(1.1)',
-                                                    },
-                                                    width: 32,
-                                                    height: 32,
-                                                    '& .MuiSvgIcon-root': {
-                                                        fontSize: '1.2rem',
-                                                    },
-                                                    border: '2px solid white',
-                                                    boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
-                                                    transition: 'all 0.3s ease',
-                                                    transform: isUploading ? 'scale(0.9)' : 'scale(1)',
-                                                }}
-                                            >
-                                                {isUploading ? (
-                                                    <CircularProgress size={20} color="inherit" />
-                                                ) : (
-                                                    <AddAPhotoIcon />
-                                                )}
-                                            </IconButton>
-                                        </label>
-                                    </Box>
-                                    <Box sx={{ animation: `${slideIn} 0.6s ease-out` }}>
-                                        <Typography 
-                                            variant="h4" 
-                                            gutterBottom 
-                                            fontFamily="Roboto Slab" 
-                                            fontWeight="bold"
-                                            sx={{
-                                                background: 'linear-gradient(45deg,rgb(1, 1, 1) 30%,rgb(116, 116, 116) 90%)',
-                                                backgroundClip: 'text',
-                                                WebkitBackgroundClip: 'text',
-                                                color: 'transparent',
-                                            }}
-                                        >
-                                            {userData.displayName}
-                                        </Typography>
-                                        <Typography 
-                                            variant="subtitle1" 
-                                            color="textSecondary"
-                                            sx={{
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                gap: 1,
-                                            }}
-                                        >
-                                            <TimeIcon fontSize="small" />
-                                            Thành viên kể từ {new Date().getFullYear()}
-                                        </Typography>
-                                    </Box>
-                                </Box>
-                                {message && (
-                                    <Alert 
-                                        severity="success" 
-                                        sx={{ mb: 2, animation: `${fadeIn} 0.6s ease-out` }}
-                                        onClose={() => setMessage('')}
-                                    >
-                                        {message}
-                                    </Alert>
-                                )}
-                                {error && (
-                                    <Alert 
-                                        severity="error" 
-                                        sx={{ mb: 2, animation: `${fadeIn} 0.6s ease-out` }}
-                                        onClose={() => setError('')}
-                                    >
-                                        {error}
-                                    </Alert>
-                                )}
-                            </Grid>
-
-                            <Dialog
-                        open={openPreview}
-                        onClose={() => setOpenPreview(false)}
-                        maxWidth="md"
-                    >
-                        <DialogTitle>Ảnh đại diện</DialogTitle>
-                        <DialogContent>
-                            <Box
-                                component="img"
-                                src={previewUrl}
-                                alt="Avatar preview"
-                                sx={{
-                                    maxWidth: '100%',
-                                    maxHeight: '70vh',
-                                    objectFit: 'contain',
-                                }}
-                            />
-                        </DialogContent>
-                        <DialogActions>
-                            <Button onClick={() => setOpenPreview(false)}>
-                                Đóng
-                            </Button>
-                        </DialogActions>
-                    </Dialog>
-
-                    <Grid item xs={12} md={6}>
-                        <Card sx={cardStyle}>
-                            <CardContent>
-                                <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-                                    <Typography variant="h6" component="div" fontFamily="Roboto Slab">
-                                        Thông tin cá nhân
-                                    </Typography>
-                                    {!editMode ? (
-                                        <Tooltip title="Sửa thông tin">
-                                            <IconButton 
-                                                onClick={handleEdit} 
-                                                color="primary"
-                                                sx={{
-                                                    transition: 'transform 0.3s ease',
-                                                    '&:hover': {
-                                                        transform: 'rotate(15deg)',
-                                                    },
-                                                }}
-                                            >
-                                                <EditIcon />
-                                            </IconButton>
-                                        </Tooltip>
-                                    ) : (
-                                        <Box>
-                                            <Tooltip title="Lưu thay đổi">
-                                                <IconButton 
-                                                    onClick={handleSave} 
-                                                    color="primary" 
-                                                    sx={{ 
-                                                        mr: 1,
-                                                        transition: 'transform 0.3s ease',
-                                                        '&:hover': {
-                                                            transform: 'scale(1.1)',
-                                                        },
-                                                    }}
-                                                >
-                                                    <SaveIcon />
-                                                </IconButton>
-                                            </Tooltip>
-                                            <Tooltip title="Hủy">
-                                                <IconButton 
-                                                    onClick={handleCancel} 
-                                                    color="error"
-                                                    sx={{
-                                                        transition: 'transform 0.3s ease',
-                                                        '&:hover': {
-                                                            transform: 'scale(1.1)',
-                                                        },
-                                                    }}
-                                                >
-                                                    <CancelIcon />
-                                                </IconButton>
-                                            </Tooltip>
-                                        </Box>
-                                    )}
-                                </Box>
-                                <Divider sx={{ mb: 3 }} />
-                                
-                                {editMode ? (
-                                    <Box component="form" sx={{ '& .MuiTextField-root': { mb: 2 } }}>
-                                        <TextField
-                                            label="Tên"
-                                            name="displayName"
-                                            value={userData.displayName}
-                                            onChange={handleChange}
-                                            fullWidth
-                                            variant="outlined"
-                                            sx={textFieldStyle}
-                                            InputProps={{
-                                                startAdornment: <PersonIcon sx={{ mr: 1, color: 'primary.main' }} />,
-                                            }}
-                                        />
-                                        <TextField
-                                            label="Email"
-                                            name="email"
-                                            value={userData.email}
-                                            onChange={handleChange}
-                                            fullWidth
-                                            variant="outlined"
-                                            sx={textFieldStyle}
-                                            InputProps={{
-                                                startAdornment: <EmailIcon sx={{ mr: 1, color: 'primary.main' }} />,
-                                            }}
-                                        />
-                                        <TextField
-                                            label="Level"
-                                            name="level"
-                                            value={userData.level}
-                                            onChange={handleChange}
-                                            fullWidth
-                                            variant="outlined"
-                                            sx={textFieldStyle}
-                                            InputProps={{
-                                                startAdornment: <GradeIcon sx={{ mr: 1, color: 'primary.main' }} />,
-                                            }}
-                                        />
-                                    </Box>
-                                ) : (
-                                    <Box sx={{ '& > div': { mb: 2 } }}>
-                                        <Box display="flex" alignItems="center">
-                                            <PersonIcon sx={{ mr: 2, color: 'primary.main' }} />
-                                            <Box>
-                                                <Typography variant="body2" color="textSecondary">
-                                                    Tên
-                                                </Typography>
-                                                <Typography variant="body1">
-                                                    {userData.displayName}
-                                                </Typography>
-                                            </Box>
-                                        </Box>
-                                        <Box display="flex" alignItems="center">
-                                            <EmailIcon sx={{ mr: 2, color: 'primary.main' }} />
-                                            <Box>
-                                                <Typography variant="body2" color="textSecondary">
-                                                    Email
-                                                </Typography>
-                                                <Typography variant="body1">
-                                                    {userData.email}
-                                                </Typography>
-                                            </Box>
-                                        </Box>
-                                        <Box display="flex" alignItems="center">
-                                            <GradeIcon sx={{ mr: 2, color: 'primary.main' }} />
-                                            <Box>
-                                                <Typography variant="body2" color="textSecondary">
-                                                    Level
-                                                </Typography>
-                                                <Typography variant="body1">
-                                                    {userData.level}
-                                                </Typography>
-                                            </Box>
-                                        </Box>
-                                    </Box>
-                                )}
-                            </CardContent>
-                        </Card>
-                    </Grid>
-
-                    <Grid item xs={12} md={6}>
-                        <Card sx={cardStyle}>
-                            
-                        </Card>
-                    </Grid>
-                </Grid>
-            </Paper>
+          {isLoadingMenu && <FoodLoadingOverlay />}
+          {section === "personal" && (
+            <PersonalInfoSection
+              userData={userData}
+              avatar={avatar}
+              isUploading={isUploading}
+              getInitials={getInitials}
+              handlePreview={handlePreview}
+              handleAvatarUpload={handleAvatarUpload}
+              editMode={editMode}
+              handleEdit={handleEdit}
+              handleSave={handleSave}
+              handleCancel={handleCancel}
+              handleChange={handleChange}
+              textFieldStyle={{
+                '& .MuiOutlinedInput-root': {
+                  transition: 'all 0.3s ease',
+                  '&:hover': { '& fieldset': { borderColor: 'primary.main' } },
+                  '&.Mui-focused': { '& fieldset': { borderWidth: '2px' } },
+                },
+              }}
+              message={message}
+              setMessage={setMessage}
+              error={error}
+              setError={setError}
+              preference={preference}
+              setPreference={setPreference}
+              restrictions={restrictions}
+              setRestrictions={setRestrictions}
+            />
+          )}
+          {section === "nutrition" && (
+            <NutritionRecommendationSection
+              recommendations={recommendations}
+              translateBMICategory={translateBMICategory}
+              
+            />
+          )}
+          {section === "menu" && (
+            <RecommendationMenuSection
+              showCreateMenuButton={true}
+              userData={userData}
+              isLoadingMenu={isLoadingMenu}
+              menuDialogOpen={menuDialogOpen}
+              setMenuDialogOpen={setMenuDialogOpen}
+              handleGetRecommendations={handleGetRecommendations}
+              recommendations={recommendations}
+              showUnrecMenu={showUnrecMenu}
+              setShowUnrecMenu={setShowUnrecMenu}
+              translateBMICategory={translateBMICategory}
+              lastMenuParams={lastMenuParams}
+              
+            />
+          )}
+          <Dialog open={openPreview} onClose={() => setOpenPreview(false)} maxWidth="md">
+            <DialogTitle>Ảnh đại diện</DialogTitle>
+            <DialogContent>
+              <Box component="img" src={previewUrl} alt="Avatar preview" sx={{ maxWidth: '100%', maxHeight: '70vh', objectFit: 'contain' }} />
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={() => setOpenPreview(false)}>Đóng</Button>
+            </DialogActions>
+          </Dialog>
         </Container>
-
-    );
+        <EatTodayMascot onClick={() => setMenuDialogOpen(true)} />
+      </Box>
+    </Box>
+  );
 }
 
 export default Account;

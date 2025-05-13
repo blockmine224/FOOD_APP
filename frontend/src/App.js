@@ -9,9 +9,9 @@ import Footer from './components/Footer';
 import Register from './components/Register';
  
 import Account from './components/Account';
-
+import RegisterStep2 from './components/RegisterStep2';
 import { useAuth } from './contexts/AuthContext';
-
+import NotificationProvider from './components/NotificationProvider';
 import './styles/mui-overrides.css';
 import './styles/main.css';
 
@@ -27,11 +27,13 @@ function App() {
   const shouldShowFooter = !hideFooterRoutes.includes(location.pathname);
 
   return (
+    <NotificationProvider>
     <ThemeProvider theme={theme}>
     <Box sx={{ 
       display: 'flex', 
       flexDirection: 'column', 
-      minHeight: '100vh' 
+      minHeight: '100vh',
+      
     }}>
       <Header />
       <Box sx={{ 
@@ -45,6 +47,7 @@ function App() {
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/register-step2" element={<RegisterStep2 />} />
           <Route path="/account" element={<Account />} />
           <Route path="*" element={isAuthenticated ? <Navigate to="/" /> : <Navigate to="/login" />} />
         </Routes>
@@ -52,6 +55,7 @@ function App() {
       {shouldShowFooter && <Footer />}
     </Box>
     </ThemeProvider>
+    </NotificationProvider>
   );
 }
 

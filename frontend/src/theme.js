@@ -12,6 +12,11 @@ const theme = createTheme({
       light: '#ff80ab',
       dark: '#c51162',
     },
+    third:{
+      main: '#90C67C',
+      light: '#E1EEBC',
+      dark: '#DFF2EB',
+    }
   },
   typography: {
     fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',

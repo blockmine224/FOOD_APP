@@ -3,7 +3,7 @@ import { Container, TextField, Button, Typography, Box, Alert, Link as MuiLink }
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { GoogleLogin } from '@react-oauth/google';
-import backgroundImage from '../images/idk22.png';
+import backgroundImage from '../images/bg123_r.jpg';
 
 function Login() {
   const [username, setUsername] = useState('');
@@ -94,6 +94,7 @@ function Login() {
       const data = await response.json();
 
       if (response.ok) {
+        localStorage.setItem('token', data.token);
         const fetchUserResponse = await fetch(`${API}/api/users/me`, {
             headers: {
                 'Authorization': `Bearer ${data.token}`, 
@@ -145,6 +146,7 @@ function Login() {
 
         const data = await response.json();
         if (response.ok) {
+            localStorage.setItem('token', data.token);
             const fetchUserResponse = await fetch(`${API}/api/users/me`, {
             headers: {
                 'Authorization': `Bearer ${data.token}`,
@@ -315,7 +317,6 @@ function Login() {
           }
         }}
       >
-        {/* Animated title box */}
         <Box
           sx={{
             position: 'absolute',
@@ -340,7 +341,6 @@ function Login() {
               borderRadius: '50%',
               animation: 'ripple 2s ease-in-out infinite',
             },
-            // Water drop effect circles
             '&::after': {
               content: '""',
               position: 'absolute',
@@ -352,7 +352,6 @@ function Login() {
               borderRadius: '50%',
               animation: 'waterDrop 2s ease-in-out infinite',
             },
-            // Additional water circles
             '& .water-circle': {
               position: 'absolute',
               borderRadius: '50%',
@@ -361,7 +360,6 @@ function Login() {
             }
           }}
         >
-          {/* Water effect circles */}
           <Box
             className="water-circle"
             sx={{
@@ -409,8 +407,8 @@ function Login() {
             zIndex: 1,
           }}
         >
-          {error && <Alert severity="error" sx={{ mb: 2, width: '100%' }}>{error}</Alert>} 
-          {successMessage && <Alert severity="success" sx={{ mb: 2, width: '100%' }}>{successMessage}</Alert>}
+          {error && <Alert severity="error" sx={{ mb: 2, width: '90%' }}>{error}</Alert>} 
+          {successMessage && <Alert severity="success" sx={{ mb: 2, width: '90%' }}>{successMessage}</Alert>}
           
           <Box component="form" sx={{ width: '100%', mt: 1 }}>
             <TextField
@@ -449,6 +447,7 @@ function Login() {
               sx={{ 
                 mt: 3, 
                 mb: 2,
+                
                 fontFamily: "Roboto Slab",
                 width: 'auto', 
                 minWidth: '120px', 
@@ -457,6 +456,10 @@ function Login() {
                 margin: '16px auto', 
                 display: 'block', 
                 padding: '0 24px',
+                backgroundColor: '#4A628A', 
+                '&:hover': {
+                backgroundColor: '#7AB2D3', 
+                }
               }}
               onClick={handleLogin}
             >

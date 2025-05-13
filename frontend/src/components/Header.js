@@ -94,7 +94,7 @@ function Header() {
       transform: 'translateX(-50%)',
       width: 0,
       height: '2px',
-      backgroundColor: 'white',
+      backgroundColor: '#000000',
       transition: 'width 0.3s ease',
     },
     '&:hover': {
@@ -113,10 +113,15 @@ function Header() {
   return (
     <>
       <Slide appear={false} direction="down" in={!trigger}>
-        <AppBar position="fixed" sx={{ background: 'primary-color' }}>
+        <AppBar position="fixed" 
+          sx={{
+            background: `radial-gradient(circle at center, rgba(255,255,255,0.2), transparent 70%), 
+                         linear-gradient(45deg, #FFFDF2,#fafafa)`,
+            backdropFilter: 'saturate(180%) blur(6px)',
+            boxShadow: '0 3px 8px rgba(0,0,0,0.15)',
+          }}>
           <Toolbar sx={{ 
-            paddingTop: 1, 
-            paddingBottom: 1,
+           
             transition: 'all 0.3s ease',
           }}>
             <IconButton 
@@ -133,7 +138,7 @@ function Header() {
               }}
             >
               <img 
-                src="/myicon.ico" 
+                src="/icon_2.ico" 
                 alt="home icon" 
                 style={{ width: 35, height: 35 }}
               />
@@ -150,70 +155,15 @@ function Header() {
                 background: 'linear-gradient(45deg, #FFFFFF 30%, #E3F2FD 90%)',
                 backgroundClip: 'text',
                 WebkitBackgroundClip: 'text',
-                color: 'transparent',
+                color: '#323232',
                 textShadow: '2px 2px 4px rgba(0,0,0,0.1)',
               }}
             >
-              {isAuthenticated ? `Xin chào, ${displayName}!` : 'FoodLife'}
+              {isAuthenticated ? `Xin chào, ${displayName}!` : 'Tuổi Thọ & Dinh Dưỡng'}
             </Typography>
 
-            {/* Search Box */}
-            <Box sx={{ 
-              mr: 2, 
-              display: { xs: 'none', sm: 'flex' }, 
-              alignItems: 'center',
-              transform: isSearchFocused ? 'scale(1.02)' : 'scale(1)',
-              transition: 'transform 0.3s ease',
-            }}>
-              <TextField
-                variant="outlined"
-                size="small"
-                placeholder="Tìm kiếm..."
-                onFocus={() => setIsSearchFocused(true)}
-                onBlur={() => setIsSearchFocused(false)}
-                InputProps={{
-                  endAdornment: (
-                    <InputAdornment position="end">
-                      <IconButton 
-                        type="button" 
-                        sx={{ 
-                          p: '4px',
-                          transition: 'transform 0.3s ease',
-                          '&:hover': {
-                            transform: 'rotate(90deg)',
-                          },
-                        }} 
-                        aria-label="search"
-                      >
-                        <SearchIcon />
-                      </IconButton>
-                    </InputAdornment>
-                  ),
-                }}
-                sx={{
-                  backgroundColor: 'snow',
-                  borderRadius: 2,
-                  transition: 'all 0.3s ease',
-                  '& .MuiOutlinedInput-root': {
-                    borderRadius: 2,
-                    transition: 'all 0.3s ease',
-                    '& fieldset': {
-                      borderColor: 'transparent',
-                      transition: 'all 0.3s ease',
-                    },
-                    '&:hover fieldset': {
-                      borderColor: 'rgba(255,255,255,0.5)',
-                    },
-                    '&.Mui-focused fieldset': {
-                      borderColor: 'primary.main',
-                      boxShadow: '0 0 0 3px rgba(25,118,210,0.2)',
-                    },
-                  },
-                }}
-              />
-            </Box>
+            
 
-            {/* Desktop  */}
             {!isMobile && (
               <Box sx={{ display: 'flex', alignItems: 'center' }}>
               {isAuthenticated ? (
@@ -226,7 +176,8 @@ function Header() {
                       ...buttonStyle,
                       display: 'flex',
                       alignItems: 'center',
-                      gap: 1
+                      gap: 1,
+                      color: '#323232'
                     }}
                   >
                     <Avatar 
@@ -246,7 +197,7 @@ function Header() {
                   <Button 
                     color="inherit"
                     onClick={handleLogout}
-                    sx={buttonStyle}
+                    sx={{...buttonStyle, color:'#323232'}}
                   >
                     Đăng xuất
                   </Button>
@@ -257,7 +208,7 @@ function Header() {
                     color="inherit" 
                     component={Link} 
                     to="/login" 
-                    sx={buttonStyle}
+                    sx={{...buttonStyle, color:'#323232'}}
                   >
                     Đăng nhập
                   </Button>
@@ -265,7 +216,7 @@ function Header() {
                     color="inherit" 
                     component={Link} 
                     to="/register" 
-                    sx={buttonStyle}
+                    sx={{...buttonStyle, color:'#323232'}}
                   >
                     Đăng ký
                   </Button>
@@ -274,14 +225,13 @@ function Header() {
             </Box>
             )}
 
-            {/* Mobile  */}
             {isMobile && (
               <>
                 <IconButton
                   color="inherit"
                   aria-label="menu"
                   onClick={handleMenuOpen}
-                  sx={{ ml: 1 }}
+                  sx={{ ml: 1, color:'#323232'}} 
                 >
                   {isAuthenticated ? (
                      <Avatar 

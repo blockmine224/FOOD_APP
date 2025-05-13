@@ -1,19 +1,54 @@
 import React, { useState } from 'react';
-import { Container, TextField, Button, Typography, Box, Alert, Link as MuiLink} from '@mui/material';
+import { Container, TextField, Button, Typography, Box, Alert, Link as MuiLink } from '@mui/material';
 import { useNavigate, Link } from 'react-router-dom';
-import backgroundImage from '../images/idk22.png';
+import backgroundImage from '../images/bg123_r.jpg';
 
 function Register() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [email, setEmail] = useState('');
-  const [error, setError] = useState(''); 
+  const [error, setError] = useState('');
+  const [isChecking, setIsChecking] = useState(false);
   const navigate = useNavigate();
   const API = process.env.REACT_APP_API_URL;
 
+  const checkUsernameEmail = async () => {
+    try {
+      setIsChecking(true);
+      const userRes = await fetch(`${API}/api/users/check-username?username=${encodeURIComponent(username)}`);
+      const emailRes = await fetch(`${API}/api/users/check-email?email=${encodeURIComponent(email)}`);
+
+      const userData = await userRes.json();
+      const emailData = await emailRes.json();
+
+      if (!userRes.ok || !emailRes.ok) {
+        setError('Đã xảy ra lỗi khi kiểm tra tài khoản. Vui lòng thử lại.');
+        setIsChecking(false);
+        return false;
+      }
+
+      if (userData.exists) {
+        setError('Tên đăng nhập đã tồn tại. Vui lòng chọn tên khác.');
+        setIsChecking(false);
+        return false;
+      }
+      if (emailData.exists) {
+        setError('Email đã được sử dụng. Vui lòng dùng email khác.');
+        setIsChecking(false);
+        return false;
+      }
+      setIsChecking(false);
+      return true;
+    } catch (err) {
+      setError('Đã xảy ra lỗi khi kiểm tra tài khoản.');
+      setIsChecking(false);
+      return false;
+    }
+  };
+
   const handleRegister = async () => {
-    setError(''); 
+    setError('');
 
     if (!username || !email || !password || !confirmPassword) {
       setError('Tất cả các trường không được trống.');
@@ -35,14 +70,13 @@ function Register() {
     const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
 
     if (!(hasUpperCase && hasLowerCase && hasNumber && hasSpecialChar)) {
-        let errorMessage = "Mật khẩu phải chứa ít nhất:";
-        if (!hasUpperCase) errorMessage += " một chữ cái viết hoa,";
-        if (!hasLowerCase) errorMessage += " một chữ cái thường,";
-        if (!hasNumber) errorMessage += " một số,";
-        if (!hasSpecialChar) errorMessage += " một ký tự đặc biệt,";
-
-        errorMessage = errorMessage.slice(0, -1) + ".";
-        setError(errorMessage);
+      let errorMessage = "Mật khẩu phải chứa ít nhất:";
+      if (!hasUpperCase) errorMessage += " một chữ cái viết hoa,";
+      if (!hasLowerCase) errorMessage += " một chữ cái thường,";
+      if (!hasNumber) errorMessage += " một số,";
+      if (!hasSpecialChar) errorMessage += " một ký tự đặc biệt,";
+      errorMessage = errorMessage.slice(0, -1) + ".";
+      setError(errorMessage);
       return;
     }
 
@@ -55,6 +89,9 @@ function Register() {
       setError('Vui lòng nhập địa chỉ email hợp lệ.');
       return;
     }
+
+    const valid = await checkUsernameEmail();
+    if (!valid) return;
 
     try {
       const response = await fetch(`${API}/api/users/register`, {
@@ -69,11 +106,12 @@ function Register() {
 
       if (response.ok) {
         localStorage.setItem('token', data.token);
-        localStorage.setItem('displayName', username);
-        navigate('/login?success=registered'); 
+        navigate('/register-step2', {
+          state: { token: data.token }
+        });
       } else {
         if (data.errors) {
-          setError(data.errors.join(' ')); 
+          setError(data.errors.join(' '));
         } else {
           setError(data.message || 'Registration failed');
         }
@@ -84,81 +122,75 @@ function Register() {
     }
   };
 
-  
-
-
   const waterDropAnimation = `
-  @keyframes waterDrop {
-    0% {
-      transform: translateX(-50%) scale(0.85);
-      opacity: 1;
+    @keyframes waterDrop {
+      0% {
+        transform: translateX(-50%) scale(0.85);
+        opacity: 1;
+      }
+      50% {
+        transform: translateX(-50%) scale(1.05);
+        opacity: 0.5;
+      }
+      100% {
+        transform: translateX(-50%) scale(0.85);
+        opacity: 1;
+      }
     }
-    50% {
-      transform: translateX(-50%) scale(1.05);
-      opacity: 0.5;
-    }
-    100% {
-      transform: translateX(-50%) scale(0.85);
-      opacity: 1;
-    }
-  }
 
-  @keyframes ripple {
-    0% {
-      transform: translate(-50%, -50%) scale(0.8);
-      opacity: 1;
+    @keyframes ripple {
+      0% {
+        transform: translate(-50%, -50%) scale(0.8);
+        opacity: 1;
+      }
+      50% {
+        transform: translate(-50%, -50%) scale(1.1);
+        opacity: 0.3;
+      }
+      100% {
+        transform: translate(-50%, -50%) scale(0.8);
+        opacity: 1;
+      }
     }
-    50% {
-      transform: translate(-50%, -50%) scale(1.1);
-      opacity: 0.3;
-    }
-    100% {
-      transform: translate(-50%, -50%) scale(0.8);
-      opacity: 1;
-    }
-  }
 
-  @keyframes float {
-    0% {
-      transform: translateX(-50%) translateY(0px);
+    @keyframes float {
+      0% {
+        transform: translateX(-50%) translateY(0px);
+      }
+      50% {
+        transform: translateX(-50%) translateY(-15px);
+      }
+      100% {
+        transform: translateX(-50%) translateY(0px);
+      }
     }
-    50% {
-      transform: translateX(-50%) translateY(-15px);
-    }
-    100% {
-      transform: translateX(-50%) translateY(0px);
-    }
-  }
   `;
 
   const animations = `
-  ${waterDropAnimation}
-
-  @keyframes borderAnimation {
-    0% {
-      transform: rotate(0deg);
+    ${waterDropAnimation}
+    @keyframes borderAnimation {
+      0% {
+        transform: rotate(0deg);
+      }
+      50% {
+        transform: rotate(180deg);
+      }
+      100% {
+        transform: rotate(360deg);
+      }
     }
-    50% {
-      transform: rotate(180deg);
+    @keyframes borderGlow {
+      0% {
+        background-position: 0% 50%;
+      }
+      50% {
+        background-position: 100% 50%;
+      }
+      100% {
+        background-position: 0% 50%;
+      }
     }
-    100% {
-      transform: rotate(360deg);
-    }
-  }
-
-  @keyframes borderGlow {
-    0% {
-      background-position: 0% 50%;
-    }
-    50% {
-      background-position: 100% 50%;
-    }
-    100% {
-      background-position: 0% 50%;
-    }
-  }
   `;
-  
 
   return (
     <Box
@@ -166,7 +198,7 @@ function Register() {
         minHeight: '100vh',
         width: '100%',
         display: 'flex',
-        justifyContent: 'center', 
+        justifyContent: 'center',
         alignItems: 'center',
         position: 'relative',
         '&::before': {
@@ -184,7 +216,6 @@ function Register() {
       }}
     >
       <style>{animations}</style>
-
       <Container
         maxWidth="xs"
         sx={{
@@ -196,14 +227,13 @@ function Register() {
           backdropFilter: 'blur(10px)',
           opacity: 0.9,
           minHeight: '10vh',
-          width: { xs: '90%', sm: '70%', md: '450px' }, 
+          width: { xs: '90%', sm: '70%', md: '450px' },
           mt: { xs: 8, sm: 8, md: 10 },
           mb: { xs: 4, md: 0 },
           borderRadius: '25px',
           position: 'relative',
           paddingTop: { xs: '80px', sm: '90px' },
-
-          overflow: 'hidden', 
+          overflow: 'hidden',
           '&::before': {
             content: '""',
             position: 'absolute',
@@ -226,7 +256,6 @@ function Register() {
             borderRadius: '25px',
             zIndex: -1,
           },
-
           '& .MuiTextField-root': {
             borderRadius: '8px',
             '& .MuiOutlinedInput-root': {
@@ -238,7 +267,6 @@ function Register() {
           }
         }}
       >
-        {/* Animated title box */}
         <Box
           sx={{
             position: 'absolute',
@@ -282,7 +310,6 @@ function Register() {
             }
           }}
         >
-          {/* Water effect circles */}
           <Box
             className="water-circle"
             sx={{
@@ -303,10 +330,9 @@ function Register() {
               animationDelay: '0.7s',
             }}
           />
-
-          <Typography 
-            variant="h4" 
-            sx={{ 
+          <Typography
+            variant="h4"
+            sx={{
               color: '#5e789d',
               fontFamily: "Roboto Slab",
               fontWeight: 'bold',
@@ -331,9 +357,9 @@ function Register() {
             zIndex: 1,
           }}
         >
-          {error && <Alert severity="error" sx={{ mb: 2, width: '100%', borderRadius: '8px' }}>{error}</Alert>}
+          {error && <Alert severity="error" sx={{ mb: 2, width: '90%', borderRadius: '8px' }}>{error}</Alert>}
 
-          <Box component="form" sx={{ width: '100%',alignItems: 'center' }}>
+          <Box component="form" sx={{ width: '100%', alignItems: 'center' }}>
             <TextField
               variant="outlined"
               margin="normal"
@@ -346,7 +372,8 @@ function Register() {
               autoFocus
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              sx={{mb: 1 ,width: '90%', ml:2.5}}
+              sx={{ mb: 1, width: '90%', ml: 2.5 }}
+              disabled={isChecking}
             />
             <TextField
               variant="outlined"
@@ -359,7 +386,8 @@ function Register() {
               autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              sx={{ mt: 1, mb: 1 ,width: '90%', ml:2.5}}
+              sx={{ mt: 1, mb: 1, width: '90%', ml: 2.5 }}
+              disabled={isChecking}
             />
             <TextField
               variant="outlined"
@@ -373,7 +401,8 @@ function Register() {
               autoComplete="new-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              sx={{ mt: 1, mb: 2 ,width: '90%', ml:2.5}}
+              sx={{ mt: 1, mb: 2, width: '90%', ml: 2.5 }}
+              disabled={isChecking}
             />
             <TextField
               variant="outlined"
@@ -387,14 +416,15 @@ function Register() {
               autoComplete="new-password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              sx={{ mt: 1, mb: 1 ,width: '90%', ml:2.5}}
+              sx={{ mt: 1, mb: 1, width: '90%', ml: 2.5 }}
+              disabled={isChecking}
             />
             <Button
               type="button"
               fullWidth
               variant="contained"
               color="primary"
-              sx={{ 
+              sx={{
                 mt: 3,
                 mb: 2,
                 fontFamily: "Roboto Slab",
@@ -404,18 +434,22 @@ function Register() {
                 borderRadius: '50px !important',
                 margin: '16px auto',
                 display: 'block',
-                minWidth: '56px',
                 padding: '0 24px',
+                backgroundColor: '#4A628A', 
+                '&:hover': {
+                backgroundColor: '#7AB2D3', 
+                }
               }}
               onClick={handleRegister}
+              disabled={isChecking}
             >
               Đăng ký
             </Button>
 
             <Box textAlign="center" sx={{ mb: 0 }}>
-              <MuiLink 
-                component={Link} 
-                to="/login" 
+              <MuiLink
+                component={Link}
+                to="/login"
                 variant="body2"
                 sx={{
                   display: 'block',
