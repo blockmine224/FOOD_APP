@@ -4,6 +4,7 @@ from .analyzer import BMIAnalyzer
 from db.connection import get_db
 import random
 import math
+from datetime import datetime
 
 menu_bp = Blueprint('menu', __name__)
 
@@ -25,12 +26,106 @@ GOAL_MAP = {
 
 # Từ khóa để xác định món ăn đặc biệt dựa trên sở thích người dùng
 SPECIAL_PREFS = {
-    "more_vegetables": ["Vegetables", "Salad"],
-    "less_vegetables": ["Vegetables", "Salad"],
-    "soup": ["Soup"],
-    "fried": ["Fried"],
-    "spicy": ["Spicy"]
+    "more_vegetables": ["rau", "lá"],
+    "less_vegetables": ["rau", "lá"],
+    "soup": [""],
+    "fried": ["dầu ăn"],
+    "spicy": ["ớt"]
 }
+
+def get_current_season():
+    month = datetime.now().month
+    if month in [3, 4, 5]:
+        return 1  # xuân 
+    elif month in [6, 7, 8]:
+        return 2  # hè
+    elif month in [9, 10, 11]:
+        return 3  # thu
+    else:
+        return 4  # đông
+
+# hàm đặt số lượng gạo bữa trưa và tối
+def required_rice_dishes(meal_name, goal_type, goal_intensity, activity_level):
+    lunch = 1
+    dinner = 2
+    if goal_type == "loss":
+        dinner = 1
+    if goal_type == "gain":
+        lunch = 2
+        dinner = 2
+        if goal_intensity == "fast":
+            dinner = 2
+    if activity_level in ["moderate", "high"]:
+        lunch += 1
+        dinner += 1
+    elif activity_level == "very_high":
+        lunch += 1
+        dinner += 1
+    if meal_name == "Bữa trưa":
+        return lunch
+    elif meal_name == "Bữa tối":
+        return dinner
+    else:
+        return 0
+
+# trả về loại gạo cho bữa trưa và tối
+def get_rice_dishes(cursor, season):
+    rice_types = ["gạo trắng", "gạo lứt"]
+    chosen_type = random.choice(rice_types)
+    sql = f"""
+        SELECT TOP 100
+            recipe_id, recipe_name, image_url, calories, protein, carbohydrates, fat,
+            ingredients, cholesterol, sodium, fiber, season
+        FROM recipes2
+        WHERE (season = 0 OR season = ?)
+          AND (recipe_name LIKE N'%{chosen_type}%')
+        ORDER BY NEWID()
+    """
+    cursor.execute(sql, (season,))
+    r = cursor.fetchone()
+    if r:
+        return {
+            "recipe_id": r[0],
+            "name": r[1],
+            "image_url": r[2],
+            "calories": float(r[3]),
+            "protein": float(r[4]) if r[4] is not None else 0.0,
+            "carbs": float(r[5]) if r[5] is not None else 0.0,
+            "fat": float(r[6]) if r[6] is not None else 0.0,
+            "ingredients": r[7],
+            "cholesterol": float(r[8]) if r[8] is not None else 0.0,
+            "sodium": float(r[9]) if r[9] is not None else 0.0,
+            "fiber": float(r[10]) if r[10] is not None else 0.0
+        }
+    return None
+
+# bắt buộc có thịt trong bữa trưa và tối
+def get_meat_dish(cursor, season, used_ids):
+    sql = """
+        SELECT TOP 100 recipe_id, recipe_name, image_url, calories, protein, carbohydrates, fat,
+            ingredients, cholesterol, sodium, fiber, season
+        FROM recipes2
+        WHERE (season = 0 OR season = ?)
+          AND (recipe_name LIKE N'%thịt%')
+        ORDER BY NEWID()
+    """
+    cursor.execute(sql, (season,))
+    meat = cursor.fetchone()
+    if not meat or meat[0] in used_ids:
+        return None
+    return {
+        "recipe_id": meat[0],
+        "name": meat[1],
+        "image_url": meat[2],
+        "calories": float(meat[3]),
+        "protein": float(meat[4]) if meat[4] is not None else 0.0,
+        "carbs": float(meat[5]) if meat[5] is not None else 0.0,
+        "fat": float(meat[6]) if meat[6] is not None else 0.0,
+        "ingredients": meat[7],
+        "cholesterol": float(meat[8]) if meat[8] is not None else 0.0,
+        "sodium": float(meat[9]) if meat[9] is not None else 0.0,
+        "fiber": float(meat[10]) if meat[10] is not None else 0.0
+    }
 
 @menu_bp.route('/api/menu/recommendations', methods=['POST'])
 @jwt_required()
@@ -42,19 +137,18 @@ def get_menu_recommendations():
         cursor.execute("SELECT id, height, weight, gender, date_of_birth FROM users WHERE username = ?", (username,))
         user_data = cursor.fetchone()
         if not user_data:
-            return jsonify({"error": "User not found"}), 404
+            return jsonify({"error": "không tìm thấy user"}), 404
         # lấy dữ liệu người dùng
         user_id, height, weight, gender, dob = user_data
         height = float(height)
         weight = float(weight)
-        from datetime import datetime
         age = (datetime.now().date() - dob).days // 365
 
-        # lấy sở thích của người dùng
+        # lấy sở thích + hạn chế
         cursor.execute("SELECT preference_type, restriction_types FROM user_preferences WHERE user_id = ?", (user_id,))
         pref_row = cursor.fetchone()
         preference = pref_row[0] if pref_row else None
-        restrictions = pref_row[1].split(",") if pref_row and pref_row[1] else []# hạn chế
+        restrictions = pref_row[1].split(",") if pref_row and pref_row[1] else []
 
         # thông tin gửi về từ người dùng
         data = request.get_json()
@@ -85,7 +179,7 @@ def get_menu_recommendations():
         user_message = None
         user_choice_recommended = False
 
-        # điều chỉnh TDEE và đưa ra khuyến nghị 
+         # điều chỉnh TDEE và đưa ra khuyến nghị 
         if bmi_category == "overweight":
             if goal_type in ["maintenance", "gain"]:
                 show_recommended = True
@@ -102,7 +196,7 @@ def get_menu_recommendations():
             elif goal_type == "gain":
                 user_message = "Bạn đang đi đúng hướng, hãy cải thiện cân nặng nhé!"
                 user_choice_recommended = True
-        else:  # bmi_category == "normal"
+        else:
             user_message = "Bạn đang ở cân nặng hợp lý. Hãy duy trì chế độ ăn lành mạnh!"
             user_choice_recommended = True
 
@@ -113,17 +207,194 @@ def get_menu_recommendations():
         # Tính micronutrient dựa trên thông tin người dùng
         micronutrient_targets = BMIAnalyzer.micronutrient_targets(age, gender)
 
-        # hàm xây dựng thực đơn với TDEE 
+        #hàm xây dựng thực đơn 
+
+        def build_meal(cursor, kcal_target, meal_name, season, goal_type, goal_intensity, activity_level, is_extra=False):
+            # trả về món ăn đặc biệt
+            menu_special_count = {"count": 0}
+            if preference == "less_vegetables":
+                max_special = 1
+            elif preference in ["spicy", "soup", "fried", "more_vegetables"]:
+                max_special = 3
+            else:
+                max_special = None
+
+            def is_special_dish(dish_name):
+                if not preference or preference not in SPECIAL_PREFS:
+                    return False
+                keywords = SPECIAL_PREFS[preference]
+                return any(kw.lower() in dish_name.lower() for kw in keywords if kw)
+
+            base_query = (
+                "SELECT TOP 100 recipe_id, recipe_name, image_url, calories, protein, carbohydrates, fat, ingredients, cholesterol, sodium, fiber, season "
+                "FROM recipes2 WHERE (season=0 OR season=?) "
+            )
+            params = [season]
+            if is_extra:
+                base_query += "AND (recipe_name LIKE N'%quả%' OR recipe_name LIKE N'%sữa%') " # nếu là bữa phụ, thêm các từ khóa như rau, sữa...
+            base_query += "ORDER BY NEWID()"
+            cursor.execute(base_query, tuple(params))
+            all_recipes = cursor.fetchall()
+
+            # Thêm điều kiện cho các bữa 
+            recipes = []
+            for r in all_recipes:
+                name = r[1].lower()
+                if meal_name == "Bữa sáng":
+                    if any(passre in name for passre in ["quả", "củ", "gạo"]):
+                        continue
+                if meal_name == "Bữa tối" and "bánh" in name:
+                    continue
+                if meal_name == "Bữa trưa" and "bánh" in name:
+                    continue
+                if preference == "less_vegetables" and is_special_dish(name):
+                    continue
+                recipes.append({
+                    "recipe_id": r[0],
+                    "name": r[1],
+                    "image_url": r[2],
+                    "calories": float(r[3]),
+                    "protein": float(r[4]) if r[4] is not None else 0.0,
+                    "carbs": float(r[5]) if r[5] is not None else 0.0,
+                    "fat": float(r[6]) if r[6] is not None else 0.0,
+                    "ingredients": r[7],
+                    "cholesterol": float(r[8]) if r[8] is not None else 0.0,
+                    "sodium": float(r[9]) if r[9] is not None else 0.0,
+                    "fiber": float(r[10]) if r[10] is not None else 0.0
+                })
+
+            meal = []
+            total = 0
+            used_ids = set()
+
+            # Thêm ít nhất 1 món ăn đặc biệt
+            if preference in ["more_vegetables", "spicy", "fried", "soup"]:
+                special_dishes = [dish for dish in recipes if is_special_dish(dish["name"])]
+                if special_dishes and (max_special is None or menu_special_count["count"] < max_special):
+                    dish = random.choice(special_dishes)
+                    meal.append({
+                        **dish,
+                        "quantity": 1,
+                        "total_kcal": dish["calories"]
+                    })
+                    used_ids.add(dish["recipe_id"])
+                    total += dish["calories"]
+                    menu_special_count["count"] += 1
+
+            if meal_name == "Bữa sáng":
+                found_special = False
+                for dish in recipes:
+                    n = dish["name"].lower()
+                    if any(x in n for x in ["bánh", "phở", "cháo", "bún"]):
+                        meal.append({**dish, "quantity": 1, "total_kcal": dish["calories"]})
+                        used_ids.add(dish["recipe_id"])
+                        total += dish["calories"]
+                        found_special = True
+                        break
+                if not found_special:
+                    cursor.execute(
+                        "SELECT TOP 100 recipe_id, recipe_name, image_url, calories, protein, carbohydrates, fat, ingredients, cholesterol, sodium, fiber, season "
+                        "FROM recipes2 WHERE (season=0 OR season=?) AND (recipe_name LIKE N'%bánh%' OR recipe_name LIKE N'%phở%' OR recipe_name LIKE N'%cháo%' OR recipe_name LIKE N'%bún%')",
+                        (season,))
+                    special = cursor.fetchone()
+                    if special:
+                        d = {
+                            "recipe_id": special[0],
+                            "name": special[1],
+                            "image_url": special[2],
+                            "calories": float(special[3]),
+                            "protein": float(special[4]) if special[4] is not None else 0.0,
+                            "carbs": float(special[5]) if special[5] is not None else 0.0,
+                            "fat": float(special[6]) if special[6] is not None else 0.0,
+                            "ingredients": special[7],
+                            "cholesterol": float(special[8]) if special[8] is not None else 0.0,
+                            "sodium": float(special[9]) if special[9] is not None else 0.0,
+                            "fiber": float(special[10]) if special[10] is not None else 0.0
+                        }
+                        meal.append({**d, "quantity": 1, "total_kcal": d["calories"]})
+                        used_ids.add(d["recipe_id"])
+                        total += d["calories"]
+            elif meal_name in ["Bữa trưa", "Bữa tối"]:
+                rice_count = required_rice_dishes(meal_name, goal_type, goal_intensity, activity_level)
+                rice_dish = get_rice_dishes(cursor, season)
+                if rice_dish and "bánh" not in rice_dish["name"].lower():
+                    meal.append({
+                        **rice_dish,
+                        "quantity": rice_count,
+                        "total_kcal": rice_dish["calories"] * rice_count
+                    })
+                    used_ids.add(rice_dish["recipe_id"])
+                    total += rice_dish["calories"] * rice_count
+
+                # món ăn có ít nhất thịt
+                has_meat = any("thịt" in d["name"].lower() for d in meal)
+                if not has_meat:
+                    meat_dish = get_meat_dish(cursor, season, used_ids)
+                    if meat_dish and "bánh" not in meat_dish["name"].lower():
+                        meal.append({**meat_dish, "quantity": 1, "total_kcal": meat_dish["calories"]})
+                        used_ids.add(meat_dish["recipe_id"])
+                        total += meat_dish["calories"]
+
+            tries = 0
+            while total < kcal_target and tries < 50 and recipes:
+                for dish in recipes:
+                    if dish["recipe_id"] in used_ids:
+                        continue
+                    # kiểm tra lại max special
+                    special_flag = is_special_dish(dish["name"])
+                    if special_flag:
+                        if max_special is not None and menu_special_count["count"] >= max_special:
+                            continue
+                    name_lower = dish["name"].lower()
+                    if meal_name == "Bữa sáng" and ("quả" in name_lower or "củ" in name_lower or "gạo" in name_lower or "rau" in name_lower):
+                        continue
+                    if meal_name in ["Bữa trưa", "Bữa tối"]:
+                        if "bánh" in name_lower:
+                            continue
+                        if "gạo nếp cái" in name_lower or "gạo tẻ" in name_lower:
+                            continue
+                        if "thịt" in name_lower and any("thịt" in d["name"].lower() for d in meal):
+                            continue
+                    max_qty = min(3, int((kcal_target - total) // dish["calories"])) if dish["calories"] > 0 else 0
+                    if max_qty <= 0:
+                        continue
+                    qty = random.randint(1, max_qty)
+                    dish_total_kcal = dish["calories"] * qty
+                    meal.append({
+                        **dish,
+                        "quantity": qty,
+                        "total_kcal": dish_total_kcal
+                    })
+                    total += dish_total_kcal
+                    used_ids.add(dish["recipe_id"])
+                    if special_flag:
+                        menu_special_count["count"] += 1
+                    if total >= kcal_target:
+                        break
+                tries += 1
+            # nếu không chọn được món nào(quá nhiều calo) - thêm tạm món ăn đầu, kiểm tra số lượng món ăn chỉ định 
+            if not meal and recipes:
+                dish = recipes[0]
+                special_flag = is_special_dish(dish["name"])
+                meal.append({
+                    **dish,
+                    "quantity": 1,
+                    "total_kcal": dish["calories"]
+                })
+                total += dish["calories"]
+                if special_flag:
+                    menu_special_count["count"] += 1
+            return meal, int(total)
+        
+        #Hàm chia % TDEE của một ngày và thành phần macro(dinh dưỡng 3)
         def build_menu_for_tdee(final_tdee):
             def percent(val, pct): return int(val * pct / 100)
-            # chia calo bữa ăn 
             meals_percent = {
-                "Bữa sáng": (20, 25),
-                "Bữa trưa": (35, 40),
-                "Bữa tối": (25, 30),
-                "Bữa phụ": (10, 15),
+                "Bữa sáng": (10, 25),
+                "Bữa trưa": (30, 35),
+                "Bữa tối": (35, 40),
+                "Bữa phụ": (5, 10),
             }
-            # Chia calo với macronutrient
             meal_splits = {
                 "Bữa sáng": 0.225,
                 "Bữa trưa": 0.375,
@@ -140,8 +411,6 @@ def get_menu_recommendations():
                 }
             meal_targets = {}
             remain = final_tdee
-
-            #Tính mục tiêu cụ thể cho từng bữa 
             for meal, (min_pct, max_pct) in meals_percent.items():
                 if meal != "Bữa phụ":
                     kcal = random.randint(percent(final_tdee, min_pct), percent(final_tdee, max_pct))
@@ -149,118 +418,13 @@ def get_menu_recommendations():
                     remain -= kcal
             meal_targets["Bữa phụ"] = max(remain, percent(final_tdee, 10))
 
-            # Món ăn chỉ định dựa theo sở thích
-            menu_special_count = {"count": 0}
-
-            # Tối đa món ăn chỉ định
-            if preference == "less_vegetables":
-                max_special = 1
-            elif preference in ["spicy", "soup", "fried", "more_vegetables"]:
-                max_special = 4  
-            else:
-                max_special = None
-
-            # kiểm tra món ăn có phải là chỉ định dựa trên tên và sở thích
-            def is_special_dish(dish_name):
-                if not preference or preference not in SPECIAL_PREFS:
-                    return False
-                keywords = SPECIAL_PREFS[preference]
-                return any(kw.lower() in dish_name.lower() for kw in keywords)
-
-            # Xây dựng các món ăn cho từng bữa từ SQL 
-            # Chọn TOP 20 để giảm thời gian lọc
-            # nếu là bữa phụ, thêm các từ khóa như rau, sữa...
-            def build_meal(cursor, kcal_target, is_extra=False):
-                base_query = (
-                    "SELECT TOP 20 recipe_id, recipe_name, image_url, calories, protein, carbohydrates, fat, ingredients, cholesterol, sodium, fiber "
-                    "FROM recipes WHERE 1=1 "
-                )
-                if is_extra:
-                    base_query += "AND (recipe_name LIKE '%fruit%' OR recipe_name LIKE '%milk%') "
-                base_query += "ORDER BY NEWID()" # lấy ngẫu nhiên
-                cursor.execute(base_query)
-                all_recipes = cursor.fetchall() # lấy danh sách công thức
-
-                recipes = [] # danh sách công thức hợp lệ
-                for r in all_recipes:
-                    name = r[1] 
-                    if is_special_dish(name):
-                        if max_special is not None and menu_special_count["count"] >= max_special:
-                            continue  # bỏ qua món ăn chỉ định 
-                    recipes.append({
-                        "recipe_id": r[0],
-                        "name": r[1],
-                        "image_url": r[2],
-                        "calories": float(r[3]) * 15, # calo được * 15 để đảm bảo dữ liệu chính xác
-                        "protein": float(r[4]) if r[4] is not None else 0.0,
-                        "carbs": float(r[5]) if r[5] is not None else 0.0,
-                        "fat": float(r[6]) if r[6] is not None else 0.0,
-                        "ingredients": r[7],
-                        "cholesterol": float(r[8]) if r[8] is not None else 0.0,
-                        "sodium": float(r[9]) if r[9] is not None else 0.0,
-                        "fiber": float(r[10]) if r[10] is not None else 0.0
-                    })
-                random.shuffle(recipes) # random công thức
-
-                # Thuật toán Greedy để chọn món ăn cho bữa ăn 
-                meal = [] # danh sách món ăn cho bữa
-                total = 0 # tổng calo 
-                used_ids = set() # lưu công thức đã dùng 
-                tries = 0 # lần thử 
-                while total < kcal_target and tries < 50 and recipes:
-                    # lặp qua danh sách công thức đã tạo(TOP 20)
-                    for dish in recipes:
-                        if dish["recipe_id"] in used_ids:# bỏ qua nếu công thức đã nhận
-                            continue
-                        # kiểm tra lại món ăn được chỉ định và số lượng 
-                        is_special = is_special_dish(dish["name"])
-                        if is_special:
-                            if max_special is not None and menu_special_count["count"] >= max_special:
-                                continue 
-                        # tối da 3 số lượng cho một bữa và lượng calo không vượt quá calo còn thiếu 
-                        max_qty = min(3, int((kcal_target - total) // dish["calories"])) if dish["calories"] > 0 else 0
-                        if max_qty <= 0:
-                            continue
-                        # chọn số lượng ngẫu nhiên và tổng calo 
-                        qty = random.randint(1, max_qty)
-                        dish_total_kcal = dish["calories"] * qty
-                        # thêm món vào bữa ăn, cập nhật các biến
-                        meal.append({
-                            **dish,
-                            "quantity": qty,
-                            "total_kcal": dish_total_kcal
-                        })
-                        total += dish_total_kcal
-                        used_ids.add(dish["recipe_id"])
-                        if is_special:
-                            menu_special_count["count"] += 1
-                        if total >= kcal_target:
-                            break
-                    tries += 1
-
-                # nếu không chọn được món nào(quá nhiều calo) - thêm tạm món ăn đầu từ TOP 20, kiểm tra số lượng món ăn chỉ định 
-                if not meal and recipes:
-                    dish = recipes[0]
-                    is_special = is_special_dish(dish["name"])
-                    if is_special:
-                        if max_special is None or menu_special_count["count"] < max_special:
-                            menu_special_count["count"] += 1
-                    meal.append({
-                        **dish,
-                        "quantity": 1,
-                        "total_kcal": dish["calories"]
-                    })
-                    total += dish["calories"]
-                return meal, int(total) # kết thúc thuật toán và trả vè tổng calo
-
-
-            # Tiếp tục tạo ra thực đơn hoàn chỉnh với macronutrients, tối đa 10 lần và trả về thực đơn tối ưu nhất  
+             # Tiếp tục tạo ra thực đơn hoàn chỉnh với macronutrients, season, tối đa 10 lần và trả về thực đơn tối ưu nhất  
+            season = get_current_season()
             MAX_ATTEMPTS = 10
             best_menu = None
             best_macro_diff = math.inf
 
             for attempt in range(MAX_ATTEMPTS):
-                menu_special_count["count"] = 0 
                 meals = []
                 meals_total_kcal = 0
                 total_protein = 0
@@ -269,10 +433,11 @@ def get_menu_recommendations():
                 cholesterol = 0
                 sodium = 0
                 fiber = 0
-
                 for meal_name, kcal_target in meal_targets.items():
                     is_extra = meal_name == "Bữa phụ"
-                    meal_dishes, meal_total = build_meal(cursor, kcal_target, is_extra)
+                    meal_dishes, meal_total = build_meal(
+                        cursor, kcal_target, meal_name, season, goal_type, goal_intensity, activity_level, is_extra
+                    )
                     meals.append({
                         "meal": meal_name,
                         "dishes": meal_dishes,
@@ -281,7 +446,6 @@ def get_menu_recommendations():
                         "meal_macros_target": meal_macros[meal_name]
                     })
                     meals_total_kcal += meal_total
-
                     # cộng tổng dinh dưỡng của món ăn(công thức), nhân với số lượng 
                     for dish in meal_dishes:
                         qty = dish.get("quantity", 1)
@@ -289,23 +453,23 @@ def get_menu_recommendations():
                         total_fat    += (dish.get("fat", 0) or 0) * qty
                         total_carb   += (dish.get("carbs", 0) or 0) * qty
                         cholesterol += (dish.get("cholesterol", 0) or 0) * qty
-                        sodium += ((dish.get("sodium", 0) or 0) * 10) * qty
+                        sodium += ((dish.get("sodium", 0) or 0) ) * qty
                         fiber += (dish.get("fiber", 0) or 0) * qty
 
                 # tính điểm thực đơn dựa trên lượng chênh lệch giữa macronutrients của menu hiện tại và macronutrients mục tiêu
                 def diff_score(target, actual):
                     return abs(target - actual) / (target + 1e-6)
-
                 score = (
                     diff_score(macro_targets["protein_g"], total_protein) +
                     diff_score(macro_targets["fat_g"], total_fat) +
                     diff_score(macro_targets["carb_g"], total_carb)
                 )
-                # nếu điểm của lần tạo này là tốt nhất (chênh lệnh nhỏ nhất) trả về thực đơn tối ưu 
+
+                 # nếu điểm của lần tạo này là tốt nhất (chênh lệnh nhỏ nhất) trả về thực đơn tối ưu 
                 if score < best_macro_diff:
                     best_macro_diff = score
                     best_menu = (meals, meals_total_kcal, total_protein, total_fat, total_carb, cholesterol, sodium, fiber)
-                # nếu chênh lệch macronutrients < 10%, lấy thực đơn 
+                # nếu chênh lệch macronutrients < 10%, lấy thực đơn     
                 if (
                     abs(total_protein - macro_targets["protein_g"]) / (macro_targets["protein_g"] + 1e-6) < 0.10 and
                     abs(total_fat - macro_targets["fat_g"]) / (macro_targets["fat_g"] + 1e-6) < 0.10 and
@@ -347,6 +511,7 @@ def get_menu_recommendations():
                     restriction_warnings.append("Cholesterol không nằm trong khoảng cho tiểu đường.")
             if "obesity" in restrictions:
                 pass
+
             # trả về thông tin cuối cùng 
             return {
                 "meals": meals, #danh sách bữa ăn, công thức
@@ -359,7 +524,6 @@ def get_menu_recommendations():
             }
         # Tạo thực đơn dựa trên TDEE người dùng chọn 
         user_menu = build_menu_for_tdee(user_final_tdee)
-
         # Nếu người dùng chọn TDEE không hợp lý, đưa ra thực đơn khuyến nghị 
         recommended_menu = build_menu_for_tdee(recommended_final_tdee) if show_recommended and recommended_final_tdee else None
 

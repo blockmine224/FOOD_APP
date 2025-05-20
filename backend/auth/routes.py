@@ -473,7 +473,7 @@ def list_menus():
             cursor.execute("""
                 SELECT d.id, d.recipe_id, d.meal_type, d.quantity, r.recipe_name, r.image_url
                 FROM user_menu_dishes d
-                JOIN recipes r ON d.recipe_id = r.recipe_id
+                JOIN recipes2 r ON d.recipe_id = r.recipe_id
                 WHERE d.menu_id=?
             """, (menu_id,))
             dishes = [dict(zip(['id','recipe_id','meal_type','quantity','recipe_name','image_url'], d)) for d in cursor.fetchall()]

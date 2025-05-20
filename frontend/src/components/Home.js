@@ -21,6 +21,7 @@ import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import RestaurantIcon from '@mui/icons-material/Restaurant';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import FavoriteIcon from '@mui/icons-material/Favorite';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import SpaIcon from '@mui/icons-material/Spa';
 import EmojiFoodBeverageIcon from '@mui/icons-material/EmojiFoodBeverage';
 import FoodBankIcon from '@mui/icons-material/FoodBank';
@@ -37,6 +38,8 @@ import { WorkOverview } from "./work";
 import KeyboardArrowLeft from '@mui/icons-material/KeyboardArrowLeft';
 import KeyboardArrowRight from '@mui/icons-material/KeyboardArrowRight';
 import { MobileStepper, Avatar } from '@mui/material';
+import HowMenuCreatedDialog from './HowMenuCreate';
+import StarButton from './StarButton';
 
 const fadeIn = keyframes`
   from { opacity: 0; transform: translateY(20px);}
@@ -218,6 +221,13 @@ function Home() {
   const [showLoginMsg, setShowLoginMsg] = useState(false);
   const [showIntroDialog, setShowIntroDialog] = useState(false);
   const [showOverview, setShowOverview] = useState(false);
+  const [showHowMenuDialog, setShowHowMenuDialog] = useState(false);
+  const [howMenuStep, setHowMenuStep] = useState(0);
+
+  const [showHowMenuLoginMsg, setShowHowMenuLoginMsg] = useState(false);
+
+  const [quickMenuDialogOpen, setQuickMenuDialogOpen] = useState(false);
+
 
   const [userData, setUserData] = useState({
       displayName: '',
@@ -291,6 +301,23 @@ function Home() {
     }
   };
 
+
+  const handleHowMenuGetStarted = () => {
+    if (isAuthenticated) {
+      setShowHowMenuDialog(false);
+      setMenuDialogOpen(true);
+    } else {
+      setShowHowMenuLoginMsg(true);
+      setTimeout(() => {
+        setShowHowMenuLoginMsg(false);
+        setShowHowMenuDialog(false);
+        navigate('/login');
+      }, 1800);
+    }
+  };
+
+  const HOW_MENU_STEPS_LEN = 6;
+
   const translateBMICategory = (cat) => {
     switch (cat) {
       case 'underweight': return 'Thiếu cân';
@@ -333,6 +360,49 @@ function Home() {
         </Container>
       )}
 
+      <HowMenuCreatedDialog
+        open={showHowMenuDialog}
+        onClose={() => setShowHowMenuDialog(false)}
+        activeStep={howMenuStep}
+        setActiveStep={setHowMenuStep}
+        renderExtra={
+          howMenuStep === HOW_MENU_STEPS_LEN - 1 && (
+            <Box flex={1} display="flex" justifyContent="flex-end">
+            <Button
+              variant="contained"
+              color="primary"
+              size="large"
+              sx={{
+                fontWeight: 700,
+                fontSize: 18,
+                
+                mr:26,
+                mt: 2,
+                px: 4,
+                py: 1.5,
+                borderRadius: 10,
+                fontFamily: "Roboto slab",
+                backgroundColor: "#4A628A",
+                '&:hover': { backgroundColor: '#7AB2D3' },
+              }}
+              onClick={() => handleHowMenuGetStarted(true)}
+            >
+              Bắt đầu ngay!
+            </Button>
+          </Box>
+          )
+        }
+      />
+
+      <Snackbar
+        open={showHowMenuLoginMsg}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        message="Vui lòng đăng nhập trước..."
+        ContentProps={{
+          sx: { fontWeight: 600, fontSize: 18, background: "#d32f2f", borderRadius: 25 }
+        }}
+      />
+
       <MenuDialog
         open={menuDialogOpen}
         onClose={() => setMenuDialogOpen(false)}
@@ -367,9 +437,20 @@ function Home() {
             translateBMICategory={translateBMICategory}
             lastMenuParams={lastMenuParams}
             token={token}
+            hideHowMenuButton={true}
           />
         </Box>
       </Dialog>
+
+      
+      <Snackbar
+        open={showHowMenuLoginMsg}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        message="Vui lòng đăng nhập trước..."
+        ContentProps={{
+          sx: { fontWeight: 600, fontSize: 18, background: "#d32f2f", borderRadius: 25 }
+        }}
+      />
 
       <Paper
         sx={{
@@ -528,6 +609,19 @@ function Home() {
         </Grid>
       </Container>
 
+      <Box display="flex" justifyContent="center" my={4} >
+        <StarButton
+          onClick={() => {
+            setShowHowMenuDialog(true);
+            setHowMenuStep(0);
+          }}
+        >
+          Quy trình tạo thực đơn?
+        </StarButton>
+      </Box>
+
+      
+
       <Typography
           variant="h5"
           align="center"
@@ -542,6 +636,9 @@ function Home() {
         >
           Trích dẫn nổi tiếng  
         </Typography>
+
+          
+
       <LongevityQuoteCarousel />
 
       <Container maxWidth="lg" sx={{ mt: 7, mb: 5 }}>
@@ -578,50 +675,7 @@ function Home() {
         </Grid>
       </Container>
 
-      <Container maxWidth="lg" sx={{ mb: 8 }}>
-        <Paper elevation={6} sx={{
-          p: { xs: 3, md: 5 },
-          textAlign: 'center',
-          borderRadius: 4,
-          background: "linear-gradient(90deg, #e0e7ff 0%, #e8fff3 100%)",
-          boxShadow: "0 2px 10px #0002"
-        }}>
-          <Typography variant="h4" fontWeight={700} gutterBottom sx={{fontFamily:"Roboto slab"}}>
-            Tạo Thực Đơn Trường Thọ Cá Nhân Hóa
-          </Typography>
-          <Typography variant="body1" sx={{ mb: 3, color: "text.secondary" }}>
-            Dựa trên nhu cầu, sức khỏe và sở thích của bạn, hệ thống sẽ đề xuất thực đơn hỗ trợ sống khỏe mạnh và trường thọ!
-          </Typography>
-          <Button
-            variant="contained"
-            color="success"
-            size="large"
-            startIcon={<RestaurantIcon />}
-            sx={{
-              opacity: 0.8,
-              fontWeight: "bold",
-              px: 5,
-              py: 1.5,
-              fontSize: 20,
-              borderRadius: 3,
-              fontFamily:"Roboto slab"
-            }}
-            onClick={() => {
-              if (isAuthenticated) {
-                setMenuDialogOpen(true);
-              } else {
-                setShowLoginMsg(true);
-                setTimeout(() => {
-                  setShowLoginMsg(false);
-                  navigate('/login');
-                }, 3000);
-              }
-            }}
-          >
-            Bắt đầu ngay
-          </Button>
-        </Paper>
-      </Container>
+      
 
       {showScrollTop && (
         <IconButton

@@ -3,7 +3,8 @@ idk.py
 menu/data/
 
 venv/
-
+.env
+.env.*
 *.pyc
 __pycache__/
 auth/__pycache__/

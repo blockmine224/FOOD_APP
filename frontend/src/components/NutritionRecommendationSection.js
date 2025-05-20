@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   Box, Card, CardContent, Typography, Divider, Stack, Chip, Avatar, Button, Fade, Paper,
-  Table, TableContainer, TableBody, TableCell, TableHead, TableRow, LinearProgress, Tooltip, IconButton, Collapse, useTheme, CircularProgress, Menu, MenuItem
+  Table, TableContainer, TableBody, TableCell, TableHead, TableRow, LinearProgress, Tooltip, IconButton, Collapse, useTheme, CircularProgress, Menu, MenuItem, Popover, Grid
 } from "@mui/material";
 import RestaurantIcon from '@mui/icons-material/Restaurant';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -11,9 +11,19 @@ import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import GTranslateIcon from '@mui/icons-material/GTranslate';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import MacroPieChart from './MacroPieChart';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import { getMenus, deleteMenu } from '../api/userMenus';
 import { translateText } from '../utils/translate';
 import { useNotification } from "./NotificationProvider";
+import backgroundImage from '../images/food1.jpg';
+import { keyframes } from '@mui/system';
+
+const pulse = keyframes`
+  0% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+`;
+
 const getMealBg = (idx) => [
   "linear-gradient(135deg, #e3ffe8 0%, #f3faff 100%)",
   "linear-gradient(135deg, #fffde3 0%, #fffaf3 100%)",
@@ -47,6 +57,20 @@ export default function NutritionRecommendationSection({ translateBMICategory, t
   const [viIngredients, setViIngredients] = useState({});
   const [translating, setTranslating] = useState({});
 
+  // --- BMI & TDEE Info Popovers (from ModernMenuSection) ---
+  const [bmiInfoAnchorEl, setBmiInfoAnchorEl] = useState(null);
+  const [tdeeInfoAnchorEl, setTdeeInfoAnchorEl] = useState(null);
+
+  const handleOpenBmiInfo = (event) => setBmiInfoAnchorEl(event.currentTarget);
+  const handleCloseBmiInfo = () => setBmiInfoAnchorEl(null);
+  const handleOpenTdeeInfo = (event) => setTdeeInfoAnchorEl(event.currentTarget);
+  const handleCloseTdeeInfo = () => setTdeeInfoAnchorEl(null);
+
+  const openBmiInfo = Boolean(bmiInfoAnchorEl);
+  const bmiInfoId = openBmiInfo ? 'bmi-info-popover' : undefined;
+  const openTdeeInfo = Boolean(tdeeInfoAnchorEl);
+  const tdeeInfoId = openTdeeInfo ? 'tdee-info-popover' : undefined;
+
   const loadMenus = (rangeType) => {
     setLoading(true);
     setError('');
@@ -76,6 +100,7 @@ export default function NutritionRecommendationSection({ translateBMICategory, t
     if (!token) return;
     loadMenus('today');
     setView('today');
+    // eslint-disable-next-line
   }, [token]);
 
   const handleView = (rangeType) => {
@@ -85,21 +110,22 @@ export default function NutritionRecommendationSection({ translateBMICategory, t
   };
 
   const handleDelete = (menuId) => {
-  confirmDialog(
-    "Xác nhận xóa",
-    "Bạn có chắc chắn muốn xóa thực đơn này?",
-    async () => {
-      setDeleteLoading(menuId);
-      try {
-        await deleteMenu(menuId);
-        notify("Đã xóa thực đơn thành công!", "success");
-      } catch (e) {
-        notify("Xóa thực đơn thất bại!", "error");
+    confirmDialog(
+      "Xác nhận xóa",
+      "Bạn có chắc chắn muốn xóa thực đơn này?",
+      async () => {
+        setDeleteLoading(menuId);
+        try {
+          await deleteMenu(menuId);
+          notify("Đã xóa thực đơn thành công!", "success");
+          loadMenus(view);
+        } catch (e) {
+          notify("Xóa thực đơn thất bại!", "error");
+        }
+        setDeleteLoading(null);
       }
-      setDeleteLoading(null);
-    }
-  );
-};
+    );
+  };
 
   const handleSelectMenu = (menu) => {
     setSelectedMenu(menu);
@@ -222,10 +248,20 @@ export default function NutritionRecommendationSection({ translateBMICategory, t
 
   const selectedAnalysis = getAnalysis(selectedMenu);
 
+  // Modern BMI & TDEE Card logic (copied from ModernMenuSection)
+  let bmiVal, bmiMin = 15, bmiMax = 35, bmiNormMin = 18.5, bmiNormMax = 22.9, tdeeUser, tdeeRecommended, bmiColor, chipColor;
+  if (selectedAnalysis) {
+    bmiVal = selectedAnalysis.bmi;
+    tdeeUser = selectedAnalysis.tdee_user;
+    tdeeRecommended = selectedAnalysis.tdee_recommended;
+    bmiColor = bmiVal >= bmiNormMin && bmiVal <= bmiNormMax ? theme.palette.success.main : theme.palette.error.main;
+    chipColor = bmiVal >= bmiNormMin && bmiVal <= bmiNormMax ? "success" : "error";
+  }
+
   return (
-    <Card sx={{ minHeight: 180, display: 'flex', flexDirection: 'column', justifyContent: 'center', px: 5}}>
+    <Card sx={{ minHeight: 180, display: 'flex', flexDirection: 'column', justifyContent: 'center', px: 5 }}>
       <CardContent>
-        <Typography variant="h5" fontWeight={700} gutterBottom sx={{fontFamily:"Roboto slab"}}>
+        <Typography variant="h5" fontWeight={700} gutterBottom sx={{ fontFamily: "Roboto slab" }}>
           Khuyến nghị dinh dưỡng và thực đơn cá nhân hóa
         </Typography>
         <Divider sx={{ mb: 2 }} />
@@ -237,9 +273,9 @@ export default function NutritionRecommendationSection({ translateBMICategory, t
         <Typography
           variant="subtitle1"
           fontWeight={700}
-          color="primary"
+          color="#4A628A"
           mb={2}
-          sx={{ fontSize: 20, letterSpacing: 0.5, fontFamily:"Roboto slab" }}
+          sx={{ fontSize: 20, letterSpacing: 0.5, fontFamily: "Roboto slab" }}
         >
           {menuLabel}
         </Typography>
@@ -253,49 +289,230 @@ export default function NutritionRecommendationSection({ translateBMICategory, t
         {selectedAnalysis && selectedMenu && (
           <Fade in>
             <Box>
-              <Card sx={{ mb: 3, background: "linear-gradient(120deg, #e0ffe3 0%, #e0e7ff 100%)", boxShadow: 4, borderRadius: 3 }}>
+              <Card
+                sx={{
+                  mb: 3,
+                  background: `linear-gradient(rgba(255,255,255,0.6),rgba(255,255,255,0.6)), url(${backgroundImage}) center/cover no-repeat`,
+                  boxShadow: 4,
+                  borderRadius: 3,
+                  position: 'relative',
+                  overflow: 'hidden'
+                }}
+              >
                 <CardContent>
-                  <Stack direction="row" alignItems="center" spacing={2}>
-                    <Avatar sx={{ bgcolor: theme.palette.success.main, width: 64, height: 64, fontSize: 28, boxShadow: 2 }}>
-                      <RestaurantIcon fontSize="inherit" />
-                    </Avatar>
-                    <Box>
-                      <Typography variant="h5" fontWeight={700} sx={{ mb: 0.5 }}>
-                        BMI: {selectedAnalysis.bmi} ({translateBMICategory(selectedAnalysis.bmi_category)})
-                      </Typography>
-                      <Typography variant="body1" color="secondary">{selectedAnalysis.user_message}</Typography>
-                      <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                      <b>TDEE lựa chọn:</b> {selectedAnalysis.tdee_user || selectedAnalysis.tdee} kcal/ngày
-                        {selectedAnalysis.tdee_recommended && (
-                      <>
-                      {" | "}
-                      <b>TDEE khuyến nghị:</b> {selectedAnalysis.tdee_recommended} kcal/ngày
-                      </>
-                        )}
-                      </Typography>
-                      <Chip
-                        label={`Tổng năng lượng: ${selectedAnalysis.meals_total_kcal_user || selectedAnalysis.meals_total_kcal} kcal`}
-                        color="success"
-                        sx={{ mt: 1, fontWeight: 700, fontSize: 16 }}
-                        icon={<LocalDiningIcon />}
-                        variant="outlined"
-                      />
-                    </Box>
-                  </Stack>
+                  <Grid container spacing={2} alignItems="stretch">
+                    <Grid item xs={12} md={5}>
+                      <Box
+                        sx={{
+                          p: 2,
+                          borderRadius: 3,
+                          background: 'rgba(255,255,255,0.2)',
+                          backdropFilter: 'blur(12px)',
+                          boxShadow: 1,
+                          height: "100%"
+                        }}
+                      >
+                        <Stack direction="row" alignItems="center" spacing={2}>
+                          <Avatar sx={{ bgcolor: bmiColor, width: 52, height: 52, fontSize: 24 }}>
+                            {bmiVal >= bmiNormMin && bmiVal <= bmiNormMax ? "✔️" : "⚠️"}
+                          </Avatar>
+                          <Box flex={1}>
+                            <Typography variant="h5" fontWeight={700} color="#323232" mb={0.5} fontFamily="Roboto slab" >Chỉ số BMI
+                              <Tooltip arrow title="Giải thích BMI" placement="top">
+                                <IconButton
+                                  aria-describedby={bmiInfoId}
+                                  size="small"
+                                  onClick={handleOpenBmiInfo}
+                                  sx={{
+                                    ml: 1,
+                                    color: "#00A9FE",
+                                    animation: `${pulse} 2s infinite ease-in-out`
+                                  }}
+                                >
+                                  <InfoOutlinedIcon fontSize="small" />
+                                </IconButton>
+                              </Tooltip>
+                            </Typography>
+                            <Stack direction="row" alignItems="center">
+                              <Typography variant="h4" fontWeight={700} sx={{ color: bmiColor }}>
+                                {bmiVal}
+                              </Typography>
+                              <Chip
+                                label={translateBMICategory(selectedAnalysis.bmi_category)}
+                                color={chipColor}
+                                size="small"
+                                sx={{ ml: 1, fontWeight: 600 }}
+                                icon={<InfoOutlinedIcon />}
+                              />
+                            </Stack>
+                            <Box sx={{ mt: 1 }}>
+                              <LinearProgress
+                                variant="determinate"
+                                value={Math.min(100, Math.max(0, ((bmiVal - bmiMin) / (bmiMax - bmiMin)) * 100))}
+                                sx={{
+                                  height: 12,
+                                  borderRadius: 2,
+                                  background: "#e0e0e0",
+                                  "& .MuiLinearProgress-bar": {
+                                    background: bmiColor,
+                                  },
+                                }}
+                              />
+                              <Stack direction="row" justifyContent="space-between">
+                                <Typography variant="caption">15</Typography>
+                                <Typography variant="caption" color="success.main">Bình thường</Typography>
+                                <Typography variant="caption">35</Typography>
+                              </Stack>
+                            </Box>
+                          </Box>
+                        </Stack>
+                        <Popover
+                          id={bmiInfoId}
+                          open={openBmiInfo}
+                          anchorEl={bmiInfoAnchorEl}
+                          onClose={handleCloseBmiInfo}
+                          anchorOrigin={{
+                            vertical: 'bottom',
+                            horizontal: 'left',
+                          }}
+                          transformOrigin={{
+                            vertical: 'top',
+                            horizontal: 'left',
+                          }}
+                          PaperProps={{
+                            elevation: 3,
+                            sx: { borderRadius: 2 }
+                          }}
+                        >
+                          <Box sx={{ p: 2, maxWidth: 500 }}>
+                            <Typography variant="subtitle1" gutterBottom fontWeight="bold" color="primary">
+                              BMI là gì?
+                            </Typography>
+                            <Typography variant="body2" paragraph>
+                              <strong>BMI (Body Mass Index)</strong> là Chỉ số Khối Cơ thể, được tính bằng cách chia cân nặng (kg) cho bình phương chiều cao (mét).
+                            </Typography>
+                            <Typography variant="body2" paragraph>
+                              BMI giúp đánh giá sơ bộ liệu một người có cân nặng bình thường, thiếu cân, thừa cân hay béo phì.
+                            </Typography>
+                            <Typography variant="caption" component="p" sx={{ fontStyle: 'italic', color: theme.palette.text.secondary }}>
+                              Lưu ý: BMI không phân biệt khối lượng cơ và mỡ, nên có thể không hoàn toàn chính xác với vận động viên hoặc người có nhiều cơ bắp.
+                            </Typography>
+                          </Box>
+                        </Popover>
+                        <Typography variant="subtitle1" sx={{ color: bmiColor, fontWeight: 500, mt: 1 }}>
+                          {selectedAnalysis.user_message}
+                        </Typography>
+                      </Box>
+                    </Grid>
+                    <Grid item xs={12} md={7}>
+                      <Box
+                        sx={{
+                          p: 2,
+                          borderRadius: 3,
+                          background: 'rgba(255,255,255,0.2)',
+                          backdropFilter: 'blur(12px)',
+                          boxShadow: 1,
+                          height: "100%"
+                        }}
+                      >
+                        <Stack direction="row" alignItems="center" spacing={2}>
+                          <Avatar sx={{ bgcolor: "#4A628A", width: 52, height: 52 }}>
+                            <LocalDiningIcon color="#fff" fontSize="large" />
+                          </Avatar>
+                          <Box flex={1}>
+                            <Typography variant="h5" fontWeight={700} color="#323232" mb={0.5} fontFamily="Roboto slab">
+                              Tổng năng lượng tiêu hao (TDEE)
+                              <Tooltip arrow title="Giải thích TDEE" placement="top">
+                                <IconButton
+                                  aria-describedby={tdeeInfoId}
+                                  size="small"
+                                  onClick={handleOpenTdeeInfo}
+                                  sx={{
+                                    ml: 1,
+                                    color: "#00A9FE",
+                                    animation: `${pulse} 2s infinite ease-in-out`
+                                  }}
+                                >
+                                  <InfoOutlinedIcon fontSize="small" />
+                                </IconButton>
+                              </Tooltip>
+                            </Typography>
+                            <Stack direction="row" spacing={2} alignItems="center">
+                              <Chip
+                                label={`TDEE lựa chọn: ${tdeeUser} calo`}
+                                color="info"
+                                sx={{ fontWeight: 600, fontSize: 15 }}
+                              />
+                              {selectedAnalysis.tdee_recommended && (
+                                <Chip
+                                  label={`TDEE khuyến nghị: ${tdeeRecommended} calo`}
+                                  color="success"
+                                  sx={{ fontWeight: 600, fontSize: 15 }}
+                                />
+                              )}
+                            </Stack>
+                            <Chip
+                              label={`Tổng năng lượng thực đơn: ${selectedAnalysis.meals_total_kcal_user || selectedAnalysis.meals_total_kcal} calo`}
+                              color="success"
+                              sx={{ mt: 2, fontWeight: 700, fontSize: 16 }}
+                              icon={<LocalDiningIcon />}
+                              variant="outlined"
+                            />
+                          </Box>
+                        </Stack>
+                        <Popover
+                          id={tdeeInfoId}
+                          open={openTdeeInfo}
+                          anchorEl={tdeeInfoAnchorEl}
+                          onClose={handleCloseTdeeInfo}
+                          anchorOrigin={{
+                            vertical: 'bottom',
+                            horizontal: 'left',
+                          }}
+                          transformOrigin={{
+                            vertical: 'top',
+                            horizontal: 'left',
+                          }}
+                          PaperProps={{
+                            elevation: 3,
+                            sx: { borderRadius: 2 }
+                          }}
+                        >
+                          <Box sx={{ p: 2, maxWidth: 600 }}>
+                            <Typography variant="subtitle1" gutterBottom fontWeight="bold" color="primary">
+                              TDEE là gì?
+                            </Typography>
+                            <Typography variant="body2" paragraph>
+                              <strong>TDEE (Total Daily Energy Expenditure)</strong> là Tổng Năng lượng Tiêu thụ Hàng ngày, tức là tổng lượng calo cơ thể bạn đốt cháy trong một ngày.
+                            </Typography>
+                            <Typography variant="body2" paragraph>
+                              Biết TDEE giúp bạn xác định lượng calo cần nạp để duy trì, giảm hoặc tăng cân hiệu quả.
+                            </Typography>
+                            <Typography variant="caption" component="p" sx={{ fontStyle: 'italic', color: theme.palette.text.secondary }}>
+                              <b>TDEE lựa chọn:</b> Mức TDEE bạn cung cấp hoặc hệ thống tính dựa trên thông tin (cân nặng, chiều cao, tuổi, mức độ hoạt động) của bạn.
+                              <br />
+                              <b> TDEE khuyến nghị:</b> Mức TDEE mà hệ thống gợi ý để bạn có thể đạt được mục tiêu sức khỏe tốt hơn, đặc biệt nếu BMI hiện tại của bạn chưa ở mức tối ưu.
+                            </Typography>
+                          </Box>
+                        </Popover>
+                        <Typography variant="body2" sx={{ mt: 1 }}>
+                          Lưu ý: 
+                          <br />Các món ăn không được chú thích sẽ mặc định là 100g
+                          <br />Thực đơn này chỉ mang tính tham khảo, bạn có thể cần bổ sung thêm món ăn và tích hợp lời khuyên từ chuyên gia.
+                        </Typography>
+                      </Box>
+                    </Grid>
+                  </Grid>
                 </CardContent>
               </Card>
               {selectedAnalysis.macro_targets_user && (
                 <Card sx={{ mb: 3, background: "linear-gradient(120deg, #e0f7fa 0%, #fffde7 100%)", borderRadius: 3, boxShadow: 2, p: 2 }}>
                   <CardContent>
-                    <Typography variant="subtitle1" fontWeight={700} color="primary" mb={1}>
-                      Phân bổ năng lượng theo ngày:
-                    </Typography>
                     <MacroPieChart
                       macroTargets={selectedAnalysis.macro_targets_user}
                       microTotals={selectedAnalysis.micronutrients_user}
                       microTargets={selectedAnalysis.micronutrient_targets_user}
                     />
-                    
                   </CardContent>
                 </Card>
               )}
@@ -329,7 +546,7 @@ export default function NutritionRecommendationSection({ translateBMICategory, t
                           {meal.meal}
                         </Typography>
                         <Typography variant="body2" color="text.secondary">
-                          Mục tiêu: {meal.meal_kcal_target} kcal
+                          Mục tiêu: {meal.meal_kcal_target} calo
                         </Typography>
                         {meal.meal_macros_target && (
                           <Stack direction="row" spacing={1} mt={0.5}>
@@ -430,7 +647,7 @@ export default function NutritionRecommendationSection({ translateBMICategory, t
                                           <Chip label={`Béo: ${dish.fat ?? 0}g`} color="secondary" size="small" />
                                           <Chip label={`Carb: ${dish.carbs ?? 0}g`} color="success" size="small" />
                                           <Chip label={`Cholesterol: ${dish.cholesterol ?? 0}mg`} sx={{ bgcolor: "#d7263d", color: "#fff" }} size="small" />
-                                          <Chip label={`Natri: ${(dish.sodium ?? 0) * 10}mg`} sx={{ bgcolor: "#f7b801" }} size="small" />
+                                          <Chip label={`Natri: ${(dish.sodium ?? 0) }mg`} sx={{ bgcolor: "#f7b801" }} size="small" />
                                           <Chip label={`Chất xơ: ${dish.fiber ?? 0}g`} sx={{ bgcolor: "#1f8a70", color: "#fff" }} size="small" />
                                         </Stack>
                                       </Box>
@@ -458,7 +675,7 @@ export default function NutritionRecommendationSection({ translateBMICategory, t
                               Tổng năng lượng bữa này
                             </TableCell>
                             <TableCell colSpan={2} sx={{ fontWeight: 700 }}>
-                              {meal.meal_total_kcal} kcal
+                              {meal.meal_total_kcal} calo
                             </TableCell>
                           </TableRow>
                         </TableBody>
@@ -471,16 +688,26 @@ export default function NutritionRecommendationSection({ translateBMICategory, t
                 <Button
                   color="error"
                   variant="contained"
-                  startIcon={<DeleteIcon/>}
+                  startIcon={<DeleteIcon />}
                   size="large"
-                  sx={{ borderRadius: 3, boxShadow: 2 }}
                   onClick={() => handleDelete(selectedMenu.id)}
                   disabled={deleteLoading === selectedMenu.id}
+                  sx={{
+                    borderRadius: '20px',
+                    px: 3,
+                    py: 1,
+                    textTransform: 'none',
+                    fontWeight: 600,
+                    boxShadow: 3,
+                    transition: 'transform 0.2s, box-shadow 0.2s',
+                    '&:hover': {
+                      boxShadow: 6,
+                      transform: 'translateY(-2px)',
+                    },
+                  }}
                 >
-                  Xóa thực đơn này
+                  Xóa thực đơn này?
                 </Button>
-
-                
               </Stack>
             </Box>
           </Fade>

@@ -57,16 +57,21 @@ export const formatLatexForReport = (text) => {
     return formattedContent;
   };
 
-  export const initMathJax = () => {
-    if (window.MathJax) {
-      window.MathJax.typesetClear();
+export const initMathJax = () => {
+  if (window.MathJax) {
+    if (typeof window.MathJax.typesetPromise === "function") {
+      // MathJax v3
       return window.MathJax.typesetPromise()
         .then(() => {
-          console.log("MathJax rendering complete");
+          console.log("MathJax v3 rendering complete");
         })
         .catch((err) => {
           console.error("MathJax rendering error:", err);
         });
+    } else if (typeof window.MathJax.Hub !== "undefined") {
+      // MathJax v2
+      window.MathJax.Hub.Queue(["Typeset", window.MathJax.Hub]);
     }
-    return Promise.resolve();
-  };
+  }
+  return Promise.resolve();
+};

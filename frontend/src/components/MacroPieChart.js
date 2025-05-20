@@ -116,7 +116,7 @@ export default function MacroPieChart({
                         const idx = context.dataIndex;
                         if (idx < 3) {
                           const m = macros[idx];
-                          return `${m.name}: ${m.kcal} kcal (${m.grams}g, ${Math.round(m.percent*100)}%)`;
+                          return `${m.name}: ${m.kcal} calo (${m.grams}g, ${Math.round(m.percent*100)}%)`;
                         } else {
                           const m = micros[idx - 3];
                           return `${m.name}: ${m.value}${m.unit} (≤${m.target}${m.unit})`;
@@ -138,7 +138,7 @@ export default function MacroPieChart({
               pointerEvents: "none"
             }}>
               <Typography variant="subtitle2" fontWeight={700} color="#232323" sx={{ letterSpacing: 1 }}>
-                Tổng<br />{totalKcal} kcal
+                Tổng<br />{totalKcal} calo
               </Typography>
             </Box>
           </Box>
