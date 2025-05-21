@@ -259,7 +259,7 @@ const MenuDialog = ({ open, onClose, onConfirm, userData }) => {
           <Button
             color="primary"
             onClick={handleBack}
-            sx={{ fontWeight: 700, fontSize: 17 }}
+            sx={{ fontWeight: 700, fontSize: 18,borderRadius: 25 }}
           >
             Quay lại
           </Button>
@@ -268,7 +268,7 @@ const MenuDialog = ({ open, onClose, onConfirm, userData }) => {
           <Button
             color="primary"
             onClick={handleClose}
-            sx={{ fontWeight: 700, fontSize: 17 }}
+            sx={{ fontWeight: 700, fontSize: 18,borderRadius: 25 }}
           >
             Hủy
           </Button>
@@ -283,7 +283,7 @@ const MenuDialog = ({ open, onClose, onConfirm, userData }) => {
               fontWeight: 800,
               fontSize: 19,
               fontFamily: "Roboto slab",
-              borderRadius: 2,
+              borderRadius: 25,
               px: 5,
               py: 1.2,
               background: 'linear-gradient(90deg,#6366f1,#22d3ee)',
@@ -302,7 +302,7 @@ const MenuDialog = ({ open, onClose, onConfirm, userData }) => {
               fontWeight: 800,
               fontSize: 19,
               fontFamily: "Roboto slab",
-              borderRadius: 2,
+              borderRadius: 25,
               px: 5,
               py: 1.2,
               background: 'linear-gradient(90deg,#6366f1,#22d3ee)',
@@ -321,7 +321,7 @@ const MenuDialog = ({ open, onClose, onConfirm, userData }) => {
               fontWeight: 800,
               fontSize: 19,
               fontFamily: "Roboto slab",
-              borderRadius: 2,
+              borderRadius: 25,
               px: 5,
               py: 1.2,
               background: 'linear-gradient(90deg,#16a34a,#22d3ee)',

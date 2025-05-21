@@ -308,18 +308,18 @@ function Account() {
           <Dialog
             open={showMenuSuggestPanel}
             onClose={() => setShowMenuSuggestPanel(false)}
-            maxWidth="md"
+            maxWidth="lg" 
             fullWidth
+            PaperProps={{ 
+              sx: {
+                borderRadius: {xs: 2, sm: 3},
+              }
+            }}
           >
-            <IconButton
-              onClick={() => setShowMenuSuggestPanel(false)}
-              sx={{ position: 'absolute', top: 8, right: 8, zIndex: 10 }}
-            >
-              <CloseIcon />
-            </IconButton>
-            <Box sx={{ p: { xs: 1, sm: 3 } }}>
+            
+            <Box sx={{ p: { xs: 1.5, sm: 2, md: 3 } }}> 
               <RecommendationMenuSection
-              showCreateMenuButton={false}
+                showCreateMenuButton={false}
                 userData={userData}
                 isLoadingMenu={isLoadingMenu}
                 menuDialogOpen={menuDialogOpen}

@@ -52,7 +52,7 @@ export default function StarButton({ onClick }) {
             fontSize: 22,
             px: 5,
             py: 1.7,
-            borderRadius: 5,
+            borderRadius: 25,
             fontFamily: "Roboto slab",
             background: "linear-gradient(90deg,#B9E5E8 0%,#DFF2EB 100%)",
             color: "#323232",

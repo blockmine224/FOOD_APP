@@ -231,7 +231,7 @@ def get_menu_recommendations():
             )
             params = [season]
             if is_extra:
-                base_query += "AND (recipe_name LIKE N'%quả%' OR recipe_name LIKE N'%sữa%') " # nếu là bữa phụ, thêm các từ khóa như rau, sữa...
+                base_query += "AND (recipe_name LIKE N'%quả%' OR recipe_name LIKE N'%sữa%') " # nếu là bữa phụ, thêm các từ khóa như quả, sữa...
             base_query += "ORDER BY NEWID()"
             cursor.execute(base_query, tuple(params))
             all_recipes = cursor.fetchall()
@@ -241,7 +241,7 @@ def get_menu_recommendations():
             for r in all_recipes:
                 name = r[1].lower()
                 if meal_name == "Bữa sáng":
-                    if any(passre in name for passre in ["quả", "củ", "gạo"]):
+                    if any(passre in name for passre in ["quả", "củ", "gạo", "rau", "canh"]):
                         continue
                 if meal_name == "Bữa tối" and "bánh" in name:
                     continue
@@ -285,7 +285,7 @@ def get_menu_recommendations():
                 found_special = False
                 for dish in recipes:
                     n = dish["name"].lower()
-                    if any(x in n for x in ["bánh", "phở", "cháo", "bún"]):
+                    if any(x in n for x in ["bánh", "phở", "cháo", "bún", "xôi"]):
                         meal.append({**dish, "quantity": 1, "total_kcal": dish["calories"]})
                         used_ids.add(dish["recipe_id"])
                         total += dish["calories"]
@@ -346,7 +346,7 @@ def get_menu_recommendations():
                         if max_special is not None and menu_special_count["count"] >= max_special:
                             continue
                     name_lower = dish["name"].lower()
-                    if meal_name == "Bữa sáng" and ("quả" in name_lower or "củ" in name_lower or "gạo" in name_lower or "rau" in name_lower):
+                    if meal_name == "Bữa sáng" and ("quả" in name_lower or "củ" in name_lower or "gạo" in name_lower or "rau" in name_lower or "canh" in name_lower):
                         continue
                     if meal_name in ["Bữa trưa", "Bữa tối"]:
                         if "bánh" in name_lower:
